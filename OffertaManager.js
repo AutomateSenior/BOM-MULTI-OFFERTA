@@ -556,50 +556,49 @@ function rigeneraBudgetDaOfferte() {
       }
     }
 
-    // Processa celle normali in batch ultra-ottimizzato
+    // Processa celle normali in batch (OTTIMIZZATO senza getRanges)
     if (celleVerdiNormali.length > 0) {
-      // Costruisci array di notazioni A1 per getRanges()
-      var notazioniA1 = [];
-      for (var i = 0; i < celleVerdiNormali.length; i++) {
-        var cella = celleVerdiNormali[i];
-        notazioniA1.push(columnToLetter(cella.col) + cella.row);
-      }
-
-      // Ottieni tutti i range in una singola chiamata
-      var ranges = budget.getRanges(notazioniA1);
-
-      // Rimuovi validazioni in batch
-      for (var i = 0; i < ranges.length; i++) {
-        var validation = ranges[i].getDataValidation();
-        if (validation) {
-          ranges[i].setDataValidation(null);
-        }
-      }
-
-      // Costruisci formule e colori in array
-      var formule = [];
-      var backgrounds = [];
-      var fontColors = [];
+      // Raggruppa celle per colonna per ottimizzare
+      var cellePerColonna = {};
 
       for (var i = 0; i < celleVerdiNormali.length; i++) {
         var cella = celleVerdiNormali[i];
+        var col = cella.col;
 
-        // Costruisci formula SUM
-        var riferimenti = [];
-        for (var j = 0; j < offerteAbilitate.length; j++) {
-          riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
+        if (!cellePerColonna[col]) {
+          cellePerColonna[col] = [];
         }
-
-        formule.push("=" + riferimenti.join("+"));
-        backgrounds.push("#4285f4");
-        fontColors.push("#ffffff");
+        cellePerColonna[col].push(cella);
       }
 
-      // Applica tutto in batch
-      for (var i = 0; i < ranges.length; i++) {
-        ranges[i].setFormula(formule[i]);
-        ranges[i].setBackground(backgrounds[i]);
-        ranges[i].setFontColor(fontColors[i]);
+      // Processa ogni colonna
+      for (var col in cellePerColonna) {
+        var celle = cellePerColonna[col];
+
+        // Prepara formule per questa colonna
+        for (var i = 0; i < celle.length; i++) {
+          var cella = celle[i];
+          var cellRange = budget.getRange(cella.row, cella.col);
+
+          // Rimuovi validazione se presente
+          var validation = cellRange.getDataValidation();
+          if (validation) {
+            cellRange.setDataValidation(null);
+          }
+
+          // Costruisci formula SUM
+          var riferimenti = [];
+          for (var j = 0; j < offerteAbilitate.length; j++) {
+            riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
+          }
+
+          var formula = "=" + riferimenti.join("+");
+
+          // Applica formula e formattazione
+          cellRange.setFormula(formula);
+          cellRange.setBackground("#4285f4");
+          cellRange.setFontColor("#ffffff");
+        }
       }
 
       CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle verdi normali processate: " + celleVerdiNormali.length);
@@ -657,40 +656,48 @@ function rigeneraBudgetDaOfferte() {
       }
     }
 
-    // Processa celle normali in batch
+    // Processa celle normali (OTTIMIZZATO senza getRanges)
     if (celleGialleNormali.length > 0) {
-      var notazioniA1 = [];
+      // Raggruppa per colonna
+      var cellePerColonna = {};
+
       for (var i = 0; i < celleGialleNormali.length; i++) {
         var cella = celleGialleNormali[i];
-        notazioniA1.push(columnToLetter(cella.col) + cella.row);
-      }
+        var col = cella.col;
 
-      var ranges = budget.getRanges(notazioniA1);
-
-      // Rimuovi validazioni in batch
-      for (var i = 0; i < ranges.length; i++) {
-        var validation = ranges[i].getDataValidation();
-        if (validation) {
-          ranges[i].setDataValidation(null);
+        if (!cellePerColonna[col]) {
+          cellePerColonna[col] = [];
         }
+        cellePerColonna[col].push(cella);
       }
 
-      // Costruisci formule MAX
-      var formule = [];
-      for (var i = 0; i < celleGialleNormali.length; i++) {
-        var cella = celleGialleNormali[i];
-        var riferimenti = [];
-        for (var j = 0; j < offerteAbilitate.length; j++) {
-          riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
+      // Processa ogni colonna
+      for (var col in cellePerColonna) {
+        var celle = cellePerColonna[col];
+
+        for (var i = 0; i < celle.length; i++) {
+          var cella = celle[i];
+          var cellRange = budget.getRange(cella.row, cella.col);
+
+          // Rimuovi validazione se presente
+          var validation = cellRange.getDataValidation();
+          if (validation) {
+            cellRange.setDataValidation(null);
+          }
+
+          // Costruisci formula MAX
+          var riferimenti = [];
+          for (var j = 0; j < offerteAbilitate.length; j++) {
+            riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
+          }
+
+          var formula = "=MAX(" + riferimenti.join(";") + ")";
+
+          // Applica formula e formattazione
+          cellRange.setFormula(formula);
+          cellRange.setBackground("#4285f4");
+          cellRange.setFontColor("#ffffff");
         }
-        formule.push("=MAX(" + riferimenti.join(";") + ")");
-      }
-
-      // Applica tutto in batch
-      for (var i = 0; i < ranges.length; i++) {
-        ranges[i].setFormula(formule[i]);
-        ranges[i].setBackground("#4285f4");
-        ranges[i].setFontColor("#ffffff");
       }
 
       CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle gialle normali processate: " + celleGialleNormali.length);
@@ -788,46 +795,34 @@ function rigeneraBudgetDaOfferte() {
       }
     }
 
-    // Batch update valori e colori (SUPER-OTTIMIZZATO con getRanges)
+    // Batch update valori e colori (OTTIMIZZATO senza getRanges)
     if (celleToUpdate.length > 0) {
-      // Costruisci array notazioni A1
-      var notazioniA1Update = [];
       for (var i = 0; i < celleToUpdate.length; i++) {
-        notazioniA1Update.push(columnToLetter(celleToUpdate[i].col) + celleToUpdate[i].row);
-      }
+        var cella = celleToUpdate[i];
+        var cellRange = budget.getRange(cella.row, cella.col);
 
-      // Usa getRanges() per batch - UNA SOLA CHIAMATA API
-      var rangesUpdate = budget.getRanges(notazioniA1Update);
-
-      // Rimuovi validazioni
-      for (var i = 0; i < rangesUpdate.length; i++) {
-        var validation = rangesUpdate[i].getDataValidation();
+        // Rimuovi validazione se presente
+        var validation = cellRange.getDataValidation();
         if (validation) {
-          rangesUpdate[i].setDataValidation(null);
+          cellRange.setDataValidation(null);
         }
-      }
 
-      // Scrivi valori e colori in batch
-      for (var i = 0; i < rangesUpdate.length; i++) {
-        rangesUpdate[i].setValue(valuesToSet[i]);
-        rangesUpdate[i].setBackground("#4285f4");
-        rangesUpdate[i].setFontColor("#ffffff");
+        // Scrivi valore e formattazione
+        cellRange.setValue(valuesToSet[i]);
+        cellRange.setBackground("#4285f4");
+        cellRange.setFontColor("#ffffff");
       }
     }
 
-    // Batch clear celle vuote (OTTIMIZZATO con getRanges)
+    // Batch clear celle vuote (OTTIMIZZATO)
     if (celleToClear.length > 0) {
-      var notazioniA1Clear = [];
       for (var i = 0; i < celleToClear.length; i++) {
-        notazioniA1Clear.push(columnToLetter(celleToClear[i].col) + celleToClear[i].row);
-      }
+        var cella = celleToClear[i];
+        var cellRange = budget.getRange(cella.row, cella.col);
 
-      var rangesClear = budget.getRanges(notazioniA1Clear);
-
-      for (var i = 0; i < rangesClear.length; i++) {
-        rangesClear[i].clearContent();
-        rangesClear[i].setBackground(null);
-        rangesClear[i].setFontColor(null);
+        cellRange.clearContent();
+        cellRange.setBackground(null);
+        cellRange.setFontColor(null);
       }
     }
 
