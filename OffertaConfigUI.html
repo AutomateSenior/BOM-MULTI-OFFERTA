@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 15px;
+      margin: 0;
+      background: #f5f5f5;
+    }
+
+    h3 {
+      margin: 0 0 15px 0;
+      color: #202124;
+      font-size: 18px;
+    }
+
+    .offerta {
+      border: 1px solid #dadce0;
+      padding: 12px;
+      margin: 0 0 10px 0;
+      border-radius: 8px;
+      background: #fff;
+      transition: all 0.2s;
+    }
+
+    .offerta:hover {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+
+    .offerta.abilitata {
+      border-left: 4px solid #34a853;
+    }
+
+    .offerta.disabilitata {
+      border-left: 4px solid #ea4335;
+      opacity: 0.65;
+    }
+
+    .offerta-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .offerta-info {
+      flex: 1;
+    }
+
+    .offerta-id {
+      font-weight: 600;
+      font-size: 14px;
+      color: #202124;
+      margin-bottom: 2px;
+    }
+
+    .offerta-nome {
+      color: #5f6368;
+      font-size: 12px;
+    }
+
+    .checkbox-container {
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    input[type="text"], textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      box-sizing: border-box;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: Arial, sans-serif;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 50px;
+    }
+
+    input[type="text"]:focus, textarea:focus {
+      outline: none;
+      border-color: #4285f4;
+    }
+
+    button {
+      padding: 8px 16px;
+      margin: 5px 5px 0 0;
+      cursor: pointer;
+      border: none;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-danger {
+      background: #ea4335;
+      color: white;
+    }
+
+    .btn-add {
+      width: 100%;
+      background: #34a853;
+      color: white;
+      font-size: 14px;
+      padding: 12px;
+      margin: 15px 0 5px 0;
+      font-weight: 600;
+    }
+
+    .btn-save {
+      width: 100%;
+      background: #4285f4;
+      color: white;
+      font-size: 14px;
+      padding: 12px;
+      margin: 5px 0;
+      font-weight: 600;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: #5f6368;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #4285f4;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: #5f6368;
+    }
+
+    .label {
+      font-size: 11px;
+      color: #5f6368;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    .messaggio {
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 4px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .messaggio.success {
+      background: #e6f4ea;
+      color: #137333;
+      border: 1px solid #34a853;
+    }
+
+    .messaggio.error {
+      background: #fce8e6;
+      color: #c5221f;
+      border: 1px solid #ea4335;
+    }
+
+    .messaggio.info {
+      background: #e8f0fe;
+      color: #1967d2;
+      border: 1px solid #4285f4;
+    }
+
+    .conferma-dialog {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 1000;
+      padding: 20px;
+    }
+
+    .conferma-content {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      max-width: 400px;
+      margin: 80px auto 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    }
+
+    .conferma-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #202124;
+    }
+
+    .conferma-text {
+      font-size: 13px;
+      color: #5f6368;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .conferma-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .btn-conferma {
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: background 0.2s;
+    }
+
+    .btn-annulla {
+      background: transparent;
+      color: #5f6368;
+      border: 1px solid #dadce0;
+    }
+
+    .btn-annulla:hover {
+      background: #f8f9fa;
+    }
+
+    .btn-conferma-ok {
+      background: #4285f4;
+      color: white;
+    }
+
+    .btn-conferma-ok:hover {
+      background: #3367d6;
+    }
+
+    .btn-conferma-danger {
+      background: #ea4335;
+      color: white;
+    }
+
+    .btn-conferma-danger:hover {
+      background: #d33b2c;
+    }
+
+    .beta-banner {
+      background: linear-gradient(135deg, #ff6b35 0%, #f7931e 100%);
+      color: white;
+      padding: 12px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+      box-shadow: 0 2px 4px rgba(255,107,53,0.3);
+      border: 2px solid #ff8c42;
+    }
+
+    .beta-banner::before {
+      content: "⚠️ ";
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="beta-banner" id="beta-banner" style="display: none;">
+    VERSIONE BETA - Solo per test
+  </div>
+
+  <h3>Configurazione Offerte</h3>
+
+  <div id="messaggio" class="messaggio"></div>
+
+  <!-- Dialog di conferma personalizzata -->
+  <div id="conferma-dialog" class="conferma-dialog">
+    <div class="conferma-content">
+      <div class="conferma-title" id="conferma-title"></div>
+      <div class="conferma-text" id="conferma-text"></div>
+      <div class="conferma-buttons">
+        <button class="btn-conferma btn-annulla" onclick="nascondiConferma()">Annulla</button>
+        <button class="btn-conferma" id="conferma-ok-btn" onclick="confermaOk()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="loading">
+    <div class="spinner"></div>
+    Caricamento...
+  </div>
+
+  <div id="offerte-container" style="display: none;">
+    <!-- Popolato dinamicamente -->
+  </div>
+
+  <div id="empty-state" class="empty-state" style="display: none;">
+    <p>Nessuna offerta configurata.</p>
+    <p>Sistema non inizializzato.</p>
+  </div>
+
+  <button class="btn-add" onclick="aggiungiOfferta()" id="btn-add" style="display: none;">
+    + Aggiungi Nuova Offerta
+  </button>
+
+  <button class="btn-save" onclick="salvaERigenera()" id="btn-save" style="display: none;">
+    Rigenera Budget
+  </button>
+
+  <script>
+    // Variabile per callback conferma
+    var confermaCallback = null;
+
+    // Verifica se è versione BETA
+    google.script.run
+      .withSuccessHandler(function(isBeta) {
+        if (isBeta) {
+          document.getElementById('beta-banner').style.display = 'block';
+        }
+      })
+      .isBetaVersion();
+
+    // Carica offerte all'avvio
+    console.log('OffertaConfigUI: Inizio caricamento offerte');
+    try {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('OffertaConfigUI: Offerte ricevute', result);
+          onOfferteCaricate(result);
+        })
+        .withFailureHandler(function(error) {
+          console.error('OffertaConfigUI: Errore caricamento', error);
+          onErrore(error);
+        })
+        .getConfigurazioneOfferte();
+    } catch (e) {
+      console.error('OffertaConfigUI: Eccezione durante chiamata', e);
+      document.getElementById('loading').style.display = 'none';
+      mostraMessaggio('Errore tecnico: ' + e.toString(), 'error');
+    }
+
+    function onOfferteCaricate(offerte) {
+      document.getElementById('loading').style.display = 'none';
+
+      if (!offerte || offerte.length === 0) {
+        document.getElementById('empty-state').style.display = 'block';
+        return;
+      }
+
+      document.getElementById('offerte-container').style.display = 'block';
+      document.getElementById('btn-add').style.display = 'block';
+      document.getElementById('btn-save').style.display = 'block';
+
+      mostraOfferte(offerte);
+    }
+
+    function mostraOfferte(offerte) {
+      var container = document.getElementById('offerte-container');
+      container.innerHTML = '';
+
+      offerte.forEach(function(off) {
+        var div = document.createElement('div');
+        div.className = 'offerta ' + (off.abilitata ? 'abilitata' : 'disabilitata');
+        div.setAttribute('data-id', off.id);
+
+        div.innerHTML = `
+          <div class="offerta-header">
+            <div class="offerta-info">
+              <div class="offerta-id">${off.id}</div>
+              <div class="offerta-nome">${off.nome}</div>
+            </div>
+            <div class="checkbox-container">
+              <input type="checkbox"
+                     id="cb-${off.id}"
+                     ${off.abilitata ? 'checked' : ''}
+                     onchange="toggleOfferta('${off.id}', this.checked)"
+                     title="${off.abilitata ? 'Disabilita' : 'Abilita'} offerta">
+            </div>
+          </div>
+          <label class="label">Descrizione:</label>
+          <textarea id="desc-${off.id}"
+                    onchange="aggiornaDescrizione('${off.id}', this.value)"
+                    placeholder="Descrizione offerta...">${off.descrizione}</textarea>
+          <button class="btn-danger" onclick="rimuoviOfferta('${off.id}')">
+            Rimuovi Offerta
+          </button>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function toggleOfferta(id, abilitata) {
+      mostraLoading();
+      google.script.run
+        .withSuccessHandler(function() {
+          ricaricaOfferte();
+        })
+        .withFailureHandler(onErrore)
+        .toggleAbilitaOfferta(id, abilitata);
+    }
+
+    function aggiornaDescrizione(id, descrizione) {
+      google.script.run
+        .withFailureHandler(onErrore)
+        .aggiornaDescrizioneOfferta(id, descrizione);
+    }
+
+    function rimuoviOfferta(id) {
+      mostraConferma(
+        'Rimuovi Offerta',
+        'Vuoi davvero rimuovere ' + id + '?\n\nQuesta operazione non può essere annullata.',
+        'danger',
+        function() {
+          mostraLoading();
+          google.script.run
+            .withSuccessHandler(function() {
+              ricaricaOfferte();
+              mostraMessaggio('Offerta ' + id + ' rimossa con successo!', 'success');
+            })
+            .withFailureHandler(onErrore)
+            .rimuoviOfferta(id);
+        }
+      );
+    }
+
+    function aggiungiOfferta() {
+      var nome = prompt('Nome della nuova offerta:', 'Nuova Offerta');
+      if (!nome) {
+        return;
+      }
+
+      var descrizione = prompt('Descrizione (opzionale):', '');
+
+      mostraLoading();
+      google.script.run
+        .withSuccessHandler(function(nuovoId) {
+          ricaricaOfferte();
+          mostraMessaggio('Offerta ' + nuovoId + ' creata con successo!', 'success');
+        })
+        .withFailureHandler(onErrore)
+        .aggiungiNuovaOfferta(nome, descrizione);
+    }
+
+    function salvaERigenera() {
+      mostraConferma(
+        'Rigenera Budget',
+        'Rigenerare il Budget?\n\nIl foglio Budget verrà aggiornato con la somma delle offerte abilitate.\n\nL\'operazione potrebbe richiedere 30-60 secondi.',
+        'ok',
+        function() {
+          mostraLoading();
+
+          // Mostra messaggio informativo durante l'elaborazione
+          mostraMessaggio('Rigenerazione Budget in corso... Attendere prego.', 'info');
+
+          google.script.run
+            .withSuccessHandler(function() {
+              // Ricarica offerte per aggiornare stato
+              ricaricaOfferte();
+              mostraMessaggio('Budget rigenerato con successo!', 'success');
+            })
+            .withFailureHandler(onErrore)
+            .rigeneraBudgetDaOfferte();
+        }
+      );
+    }
+
+    function ricaricaOfferte() {
+      mostraLoading();
+      google.script.run
+        .withSuccessHandler(onOfferteCaricate)
+        .withFailureHandler(onErrore)
+        .getConfigurazioneOfferte();
+    }
+
+    function mostraLoading() {
+      document.getElementById('offerte-container').style.display = 'none';
+      document.getElementById('btn-add').style.display = 'none';
+      document.getElementById('btn-save').style.display = 'none';
+      document.getElementById('empty-state').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+    }
+
+    function nascondiLoading() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('offerte-container').style.display = 'block';
+      document.getElementById('btn-add').style.display = 'block';
+      document.getElementById('btn-save').style.display = 'block';
+    }
+
+    function mostraMessaggio(testo, tipo) {
+      var div = document.getElementById('messaggio');
+      div.textContent = testo;
+      div.className = 'messaggio ' + tipo;
+      div.style.display = 'block';
+
+      // Nascondi automaticamente dopo 5 secondi
+      setTimeout(function() {
+        div.style.display = 'none';
+      }, 5000);
+    }
+
+    function mostraConferma(titolo, testo, tipo, callback) {
+      document.getElementById('conferma-title').textContent = titolo;
+      document.getElementById('conferma-text').textContent = testo;
+
+      var btnOk = document.getElementById('conferma-ok-btn');
+      btnOk.className = 'btn-conferma btn-conferma-' + tipo;
+
+      confermaCallback = callback;
+      document.getElementById('conferma-dialog').style.display = 'block';
+    }
+
+    function nascondiConferma() {
+      document.getElementById('conferma-dialog').style.display = 'none';
+      confermaCallback = null;
+    }
+
+    function confermaOk() {
+      // Salva callback PRIMA di nascondiConferma (che la azzera)
+      var callback = confermaCallback;
+
+      nascondiConferma();
+
+      if (callback) {
+        callback();
+      }
+    }
+
+    function onErrore(error) {
+      nascondiLoading();
+      console.error('Errore completo:', error);
+      var msg = 'Errore sconosciuto';
+      if (error) {
+        if (typeof error === 'string') {
+          msg = error;
+        } else if (error.message) {
+          msg = error.message;
+        } else {
+          msg = JSON.stringify(error);
+        }
+      }
+      mostraMessaggio('Errore: ' + msg, 'error');
+    }
+  </script>
+</body>
+</html>

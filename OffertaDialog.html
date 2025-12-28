@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', 'Segoe UI', Arial, sans-serif;
+      font-size: 14px;
+      color: #202124;
+      padding: 20px;
+      background: #fff;
+    }
+
+    .dialog-content {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 500;
+      margin-bottom: 16px;
+      color: #1a73e8;
+    }
+
+    .offerte-list {
+      margin: 20px 0;
+    }
+
+    .offerta-item {
+      display: flex;
+      align-items: center;
+      padding: 12px;
+      margin-bottom: 8px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 2px solid #e8eaed;
+      transition: all 0.2s;
+    }
+
+    .offerta-item.abilitata {
+      background: #e8f5e9;
+      border-color: #00ff00;
+    }
+
+    .offerta-item.disabilitata {
+      background: #fafafa;
+      border-color: #cccccc;
+    }
+
+    .offerta-checkbox {
+      width: 20px;
+      height: 20px;
+      margin-right: 12px;
+      cursor: pointer;
+      accent-color: #00ff00;
+    }
+
+    .offerta-info {
+      flex: 1;
+    }
+
+    .offerta-id {
+      font-weight: 500;
+      color: #1a73e8;
+      margin-bottom: 4px;
+    }
+
+    .offerta-desc {
+      font-size: 12px;
+      color: #5f6368;
+      font-style: italic;
+    }
+
+    .offerta-desc:empty:before {
+      content: "Nessuna descrizione";
+      opacity: 0.5;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 24px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background: #1a73e8;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #1765cc;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+
+    .btn-secondary {
+      background: #fff;
+      color: #5f6368;
+      border: 1px solid #dadce0;
+    }
+
+    .btn-secondary:hover {
+      background: #f8f9fa;
+      border-color: #bdc1c6;
+    }
+
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(255,255,255,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .loading-overlay.visible {
+      display: flex;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid #e8eaed;
+      border-top-color: #1a73e8;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .message {
+      padding: 12px;
+      margin: 16px 0;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .message.info {
+      background: #e8f0fe;
+      color: #1967d2;
+      border-left: 4px solid #1a73e8;
+    }
+
+    .message.success {
+      background: #e6f4ea;
+      color: #137333;
+      border-left: 4px solid #34a853;
+    }
+
+    .message.error {
+      background: #fce8e6;
+      color: #c5221f;
+      border-left: 4px solid #ea4335;
+    }
+
+    .summary {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      font-size: 13px;
+    }
+
+    .summary strong {
+      color: #1a73e8;
+    }
+  </style>
+</head>
+<body>
+  <div class="dialog-content">
+    <h2>Gestione Rapida Offerte</h2>
+
+    <div id="message" class="message info">
+      Seleziona le offerte da includere nel Budget, poi clicca "Rigenera Budget".
+    </div>
+
+    <div id="summary" class="summary" style="display: none;">
+      <strong>Budget corrente:</strong> <span id="summaryText">-</span>
+    </div>
+
+    <div class="offerte-list" id="offerteList">
+      <!-- Popolato dinamicamente -->
+    </div>
+
+    <div class="button-group">
+      <button class="btn btn-secondary" onclick="annulla()">Annulla</button>
+      <button class="btn btn-primary" id="btnRigenera" onclick="rigeneraEChiudi()">Rigenera Budget</button>
+    </div>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+  </div>
+
+  <script>
+    var offerteData = [];
+
+    // Carica offerte all'avvio
+    console.log('OffertaDialog: Inizio caricamento offerte');
+    try {
+      google.script.run
+        .withSuccessHandler(function(result) {
+          console.log('OffertaDialog: Offerte ricevute', result);
+          onOfferteCaricate(result);
+        })
+        .withFailureHandler(function(error) {
+          console.error('OffertaDialog: Errore caricamento', error);
+          onErrore(error);
+        })
+        .getConfigurazioneOfferte();
+    } catch (e) {
+      console.error('OffertaDialog: Eccezione durante chiamata', e);
+      mostraMessaggio('error', 'Errore tecnico: ' + e.toString());
+    }
+
+    function onOfferteCaricate(offerte) {
+      offerteData = offerte;
+      renderOfferte();
+      aggiornaSummary();
+    }
+
+    function renderOfferte() {
+      var html = '';
+
+      if (offerteData.length === 0) {
+        html = '<div class="message info">Nessuna offerta disponibile. Inizializza prima il sistema.</div>';
+      } else {
+        offerteData.forEach(function(offerta) {
+          var checked = offerta.abilitata ? 'checked' : '';
+          var classe = offerta.abilitata ? 'abilitata' : 'disabilitata';
+
+          html += '<div class="offerta-item ' + classe + '" data-id="' + offerta.id + '">';
+          html += '  <input type="checkbox" class="offerta-checkbox" ' + checked + ' onchange="toggleOfferta(\'' + offerta.id + '\', this.checked)">';
+          html += '  <div class="offerta-info">';
+          html += '    <div class="offerta-id">' + offerta.nome + '</div>';
+          html += '    <div class="offerta-desc">' + (offerta.descrizione || '') + '</div>';
+          html += '  </div>';
+          html += '</div>';
+        });
+      }
+
+      document.getElementById('offerteList').innerHTML = html;
+    }
+
+    function toggleOfferta(id, abilitata) {
+      mostraLoading();
+
+      google.script.run
+        .withSuccessHandler(function() {
+          // Aggiorna stato locale
+          var offerta = offerteData.find(function(o) { return o.id === id; });
+          if (offerta) {
+            offerta.abilitata = abilitata;
+          }
+
+          // Aggiorna UI
+          var item = document.querySelector('[data-id="' + id + '"]');
+          if (item) {
+            item.className = 'offerta-item ' + (abilitata ? 'abilitata' : 'disabilitata');
+          }
+
+          aggiornaSummary();
+          nascondiLoading();
+        })
+        .withFailureHandler(function(error) {
+          nascondiLoading();
+          onErrore(error);
+        })
+        .toggleAbilitaOfferta(id, abilitata);
+    }
+
+    function aggiornaSummary() {
+      var abilitate = offerteData.filter(function(o) { return o.abilitata; });
+
+      if (abilitate.length > 0) {
+        var numeri = abilitate.map(function(o) { return o.id.replace('Off_', ''); });
+        var testo = 'Sintesi BOM (Offerta ' + numeri.join('+') + ')';
+        document.getElementById('summaryText').textContent = testo;
+        document.getElementById('summary').style.display = 'block';
+      } else {
+        document.getElementById('summary').style.display = 'none';
+      }
+
+      // Disabilita pulsante se nessuna offerta abilitata
+      document.getElementById('btnRigenera').disabled = (abilitate.length === 0);
+    }
+
+    function rigeneraEChiudi() {
+      var abilitate = offerteData.filter(function(o) { return o.abilitata; });
+
+      if (abilitate.length === 0) {
+        mostraMessaggio('error', 'Seleziona almeno un\'offerta prima di rigenerare il Budget.');
+        return;
+      }
+
+      mostraLoading();
+
+      google.script.run
+        .withSuccessHandler(function() {
+          nascondiLoading();
+          mostraMessaggio('success', 'Budget rigenerato con successo!');
+
+          // Chiudi dialog dopo 1 secondo
+          setTimeout(function() {
+            google.script.host.close();
+          }, 1000);
+        })
+        .withFailureHandler(function(error) {
+          nascondiLoading();
+          onErrore(error);
+        })
+        .rigeneraBudgetDaOfferte();
+    }
+
+    function annulla() {
+      google.script.host.close();
+    }
+
+    function mostraLoading() {
+      document.getElementById('loadingOverlay').classList.add('visible');
+    }
+
+    function nascondiLoading() {
+      document.getElementById('loadingOverlay').classList.remove('visible');
+    }
+
+    function mostraMessaggio(tipo, testo) {
+      var div = document.getElementById('message');
+      div.className = 'message ' + tipo;
+      div.textContent = testo;
+    }
+
+    function onErrore(error) {
+      console.error('Errore completo:', error);
+      var msg = 'Errore sconosciuto';
+      if (error) {
+        if (typeof error === 'string') {
+          msg = error;
+        } else if (error.message) {
+          msg = error.message;
+        } else {
+          msg = JSON.stringify(error);
+        }
+      }
+      mostraMessaggio('error', 'Errore: ' + msg);
+    }
+  </script>
+</body>
+</html>

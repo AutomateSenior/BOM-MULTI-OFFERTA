@@ -1,0 +1,59 @@
+{
+  "timeZone": "Europe/Rome",
+  "dependencies": {
+    "enabledAdvancedServices": [{
+      "userSymbol": "Sheets",
+      "serviceId": "sheets",
+      "version": "v4"
+    }, {
+      "userSymbol": "Drive",
+      "serviceId": "drive",
+      "version": "v3"
+    }]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "oauthScopes": ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/script.container.ui", "https://www.googleapis.com/auth/script.scriptapp", "https://www.googleapis.com/auth/drive.readonly", "https://www.googleapis.com/auth/drive"],
+  "runtimeVersion": "V8",
+  "sheets": {
+    "macros": [{
+      "menuName": "Create",
+      "functionName": "Create"
+    }, {
+      "menuName": "BBS_All",
+      "functionName": "BBS_All"
+    }, {
+      "menuName": "BBS_Check",
+      "functionName": "BBS_Check"
+    }, {
+      "menuName": "BBS_Look_Fill",
+      "functionName": "BBS_Look_Fill"
+    }, {
+      "menuName": "BBS_Raggruppamento",
+      "functionName": "BBS_Raggruppamento"
+    }, {
+      "menuName": "BBS_Create_Budget",
+      "functionName": "BBS_Create_Budget"
+    }, {
+      "menuName": "BBS_Group",
+      "functionName": "BBS_Group"
+    }, {
+      "menuName": "BOM_All",
+      "functionName": "BOM_All"
+    }, {
+      "menuName": "BOM_Check",
+      "functionName": "BOM_Check"
+    }, {
+      "menuName": "BOM_Group",
+      "functionName": "BOM_Group"
+    }, {
+      "menuName": "BOM_Inserimento",
+      "functionName": "BOM_Inserimento"
+    }, {
+      "menuName": "BOM_Look_Fill",
+      "functionName": "BOM_Look_Fill"
+    }, {
+      "menuName": "BOM_azzera",
+      "functionName": "BOM_azzera"
+    }]
+  }
+}

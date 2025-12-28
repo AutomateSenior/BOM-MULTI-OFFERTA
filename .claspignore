@@ -1,0 +1,19 @@
+# ==================================================
+# .claspignore - File da NON caricare su Apps Script
+# ==================================================
+
+# Script Python
+*.py
+
+# Documentazione Markdown
+*.md
+
+# File di sistema e temporanei
+.DS_Store
+.claude/
+~$*
+*.sh
+
+# Configurazione clasp
+.clasp.json
+.claspignore
