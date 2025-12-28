@@ -533,6 +533,8 @@ function rigeneraBudgetDaOfferte() {
     }
 
     // PARTE 1: Processa celle verdi con SUM (SUPER-OTTIMIZZATO)
+    var tempoParteInizio = new Date().getTime();
+
     // Separa celle consistenza da celle normali
     var celleVerdiNormali = [];
     var celleVerdiConsistenza = [];
@@ -556,9 +558,9 @@ function rigeneraBudgetDaOfferte() {
       }
     }
 
-    // Processa celle normali in batch (OTTIMIZZATO senza getRanges)
+    // Processa celle normali in batch VERO (range contigui)
     if (celleVerdiNormali.length > 0) {
-      // Raggruppa celle per colonna per ottimizzare
+      // Raggruppa celle per colonna
       var cellePerColonna = {};
 
       for (var i = 0; i < celleVerdiNormali.length; i++) {
@@ -571,37 +573,60 @@ function rigeneraBudgetDaOfferte() {
         cellePerColonna[col].push(cella);
       }
 
-      // Processa ogni colonna
+      // Processa ogni colonna con range contigui
       for (var col in cellePerColonna) {
         var celle = cellePerColonna[col];
 
-        // Prepara formule per questa colonna
-        for (var i = 0; i < celle.length; i++) {
-          var cella = celle[i];
-          var cellRange = budget.getRange(cella.row, cella.col);
+        // Ordina per riga
+        celle.sort(function(a, b) { return a.row - b.row; });
 
-          // Rimuovi validazione se presente
-          var validation = cellRange.getDataValidation();
-          if (validation) {
-            cellRange.setDataValidation(null);
+        // Trova blocchi contigui
+        var blocchi = [];
+        var bloccoCorrente = [celle[0]];
+
+        for (var i = 1; i < celle.length; i++) {
+          if (celle[i].row === celle[i-1].row + 1) {
+            // Cella contigua
+            bloccoCorrente.push(celle[i]);
+          } else {
+            // Nuovo blocco
+            blocchi.push(bloccoCorrente);
+            bloccoCorrente = [celle[i]];
+          }
+        }
+        blocchi.push(bloccoCorrente);
+
+        // Processa ogni blocco contiguo con UNA SOLA chiamata getRange
+        for (var b = 0; b < blocchi.length; b++) {
+          var blocco = blocchi[b];
+          var primaRiga = blocco[0].row;
+          var numRighe = blocco.length;
+
+          // Ottieni range intero del blocco
+          var range = budget.getRange(primaRiga, parseInt(col), numRighe, 1);
+
+          // Costruisci array 2D di formule
+          var formule = [];
+          for (var i = 0; i < blocco.length; i++) {
+            var cella = blocco[i];
+            var riferimenti = [];
+            for (var j = 0; j < offerteAbilitate.length; j++) {
+              riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
+            }
+            formule.push(["=" + riferimenti.join("+")]);
           }
 
-          // Costruisci formula SUM
-          var riferimenti = [];
-          for (var j = 0; j < offerteAbilitate.length; j++) {
-            riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
-          }
+          // Applica formule in batch
+          range.setFormulas(formule);
 
-          var formula = "=" + riferimenti.join("+");
-
-          // Applica formula e formattazione
-          cellRange.setFormula(formula);
-          cellRange.setBackground("#4285f4");
-          cellRange.setFontColor("#ffffff");
+          // Applica formattazione in batch
+          range.setBackground("#4285f4");
+          range.setFontColor("#ffffff");
         }
       }
 
-      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle verdi normali processate: " + celleVerdiNormali.length);
+      var tempoParte = ((new Date().getTime() - tempoParteInizio) / 1000).toFixed(2);
+      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle verdi normali processate: " + celleVerdiNormali.length + " in " + tempoParte + "s");
     }
 
     // Processa celle consistenza (rare)
@@ -634,6 +659,8 @@ function rigeneraBudgetDaOfferte() {
     }
 
     // PARTE 2: Processa celle gialle con MAX (SUPER-OTTIMIZZATO)
+    tempoParteInizio = new Date().getTime();
+
     var celleGialleNormali = [];
     var celleGialleConsistenza = [];
 
@@ -656,7 +683,7 @@ function rigeneraBudgetDaOfferte() {
       }
     }
 
-    // Processa celle normali (OTTIMIZZATO senza getRanges)
+    // Processa celle normali in batch VERO (range contigui)
     if (celleGialleNormali.length > 0) {
       // Raggruppa per colonna
       var cellePerColonna = {};
@@ -671,36 +698,58 @@ function rigeneraBudgetDaOfferte() {
         cellePerColonna[col].push(cella);
       }
 
-      // Processa ogni colonna
+      // Processa ogni colonna con range contigui
       for (var col in cellePerColonna) {
         var celle = cellePerColonna[col];
 
-        for (var i = 0; i < celle.length; i++) {
-          var cella = celle[i];
-          var cellRange = budget.getRange(cella.row, cella.col);
+        // Ordina per riga
+        celle.sort(function(a, b) { return a.row - b.row; });
 
-          // Rimuovi validazione se presente
-          var validation = cellRange.getDataValidation();
-          if (validation) {
-            cellRange.setDataValidation(null);
+        // Trova blocchi contigui
+        var blocchi = [];
+        var bloccoCorrente = [celle[0]];
+
+        for (var i = 1; i < celle.length; i++) {
+          if (celle[i].row === celle[i-1].row + 1) {
+            bloccoCorrente.push(celle[i]);
+          } else {
+            blocchi.push(bloccoCorrente);
+            bloccoCorrente = [celle[i]];
+          }
+        }
+        blocchi.push(bloccoCorrente);
+
+        // Processa ogni blocco contiguo
+        for (var b = 0; b < blocchi.length; b++) {
+          var blocco = blocchi[b];
+          var primaRiga = blocco[0].row;
+          var numRighe = blocco.length;
+
+          // Ottieni range intero del blocco
+          var range = budget.getRange(primaRiga, parseInt(col), numRighe, 1);
+
+          // Costruisci array 2D di formule MAX
+          var formule = [];
+          for (var i = 0; i < blocco.length; i++) {
+            var cella = blocco[i];
+            var riferimenti = [];
+            for (var j = 0; j < offerteAbilitate.length; j++) {
+              riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
+            }
+            formule.push(["=MAX(" + riferimenti.join(";") + ")"]);
           }
 
-          // Costruisci formula MAX
-          var riferimenti = [];
-          for (var j = 0; j < offerteAbilitate.length; j++) {
-            riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
-          }
+          // Applica formule in batch
+          range.setFormulas(formule);
 
-          var formula = "=MAX(" + riferimenti.join(";") + ")";
-
-          // Applica formula e formattazione
-          cellRange.setFormula(formula);
-          cellRange.setBackground("#4285f4");
-          cellRange.setFontColor("#ffffff");
+          // Applica formattazione in batch
+          range.setBackground("#4285f4");
+          range.setFontColor("#ffffff");
         }
       }
 
-      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle gialle normali processate: " + celleGialleNormali.length);
+      var tempoParte = ((new Date().getTime() - tempoParteInizio) / 1000).toFixed(2);
+      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle gialle normali processate: " + celleGialleNormali.length + " in " + tempoParte + "s");
     }
 
     // Processa celle consistenza (rare)
