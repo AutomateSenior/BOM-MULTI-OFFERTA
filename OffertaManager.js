@@ -260,12 +260,22 @@ function aggiungiNuovaOfferta(nome, descrizione) {
       throw new Error("Foglio Master non trovato! Impossibile creare nuova offerta.");
     }
 
-    CONFIG.LOG.info("aggiungiNuovaOfferta", "Copia da foglio Master per " + nuovoId);
+    // DIAGNOSTICA: Verifica colore celle nel Master PRIMA della copia
+    var masterTestCell = master.getRange("S100");
+    var masterColor = masterTestCell.getBackground();
+    CONFIG.LOG.info("aggiungiNuovaOfferta", "Colore cella S100 nel Master PRIMA copia: " + masterColor);
+
+    CONFIG.LOG.info("aggiungiNuovaOfferta", "Copiando da foglio: " + master.getName());
 
     var nuovoFoglio = master.copyTo(ss);
     nuovoFoglio.setName(nuovoId);
 
-    CONFIG.LOG.info("aggiungiNuovaOfferta", "Foglio " + nuovoId + " creato da Master con successo");
+    // DIAGNOSTICA: Verifica colore celle nel nuovo foglio DOPO la copia
+    var nuovoTestCell = nuovoFoglio.getRange("S100");
+    var nuovoColor = nuovoTestCell.getBackground();
+    CONFIG.LOG.info("aggiungiNuovaOfferta", "Colore cella S100 in " + nuovoId + " DOPO copia: " + nuovoColor);
+
+    CONFIG.LOG.info("aggiungiNuovaOfferta", "Foglio " + nuovoId + " creato da " + master.getName());
 
     // Posiziona dopo l'ultima offerta
     var fogli = ss.getSheets();
