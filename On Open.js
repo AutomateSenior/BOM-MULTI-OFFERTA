@@ -337,49 +337,6 @@ function rimuoviOfferta(id) {
 }
 
 /**
- * Aggiunge nuova offerta
- */
-function aggiungiNuovaOfferta(nome, descrizione) {
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var configSheet = ss.getSheetByName("Configurazione");
-    if (!configSheet) throw new Error("Foglio Configurazione non trovato");
-
-    var lastRow = configSheet.getLastRow();
-    var numeroOfferta = 1;
-
-    if (lastRow >= 2) {
-      var data = configSheet.getRange(2, 1, lastRow - 1, 1).getValues();
-      for (var i = 0; i < data.length; i++) {
-        if (data[i][0]) {
-          var match = data[i][0].match(/Off_(\d+)/);
-          if (match) {
-            var num = parseInt(match[1]);
-            if (num >= numeroOfferta) numeroOfferta = num + 1;
-          }
-        }
-      }
-    }
-
-    var nuovoId = "Off_" + (numeroOfferta < 10 ? "0" + numeroOfferta : numeroOfferta);
-
-    var budget = ss.getSheetByName("Budget");
-    if (!budget) throw new Error("Foglio Budget non trovato");
-
-    var nuovoFoglio = budget.copyTo(ss);
-    nuovoFoglio.setName(nuovoId);
-    nuovoFoglio.setTabColor("#00ff00");
-
-    configSheet.appendRow([nuovoId, nome, descrizione || "", true, numeroOfferta]);
-
-    return nuovoId;
-  } catch (error) {
-    Logger.log("Errore aggiungiNuovaOfferta: " + error.toString());
-    throw error;
-  }
-}
-
-/**
  * Azzera offerta specifica - chiama azzeraOffertaSingola da OffertaManager.js
  */
 function azzeraOfferta(id) {
