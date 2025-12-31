@@ -8,7 +8,7 @@ var CONFIG = {
   /**
    * Versione libreria
    */
-  LIB_VERSION: "1.0.0",
+  LIB_VERSION: "1.3.0",
 
   /**
    * File esterni
@@ -36,7 +36,7 @@ var CONFIG = {
    */
   OFFERTE: {
     RANGE_SOMMA_INIZIO: 69,
-    RANGE_SOMMA_FINE: 520,  // V08: Aumentato per includere Body Rental (494-506) + margine
+    RANGE_SOMMA_FINE: 515,  // V08: Ultima riga dei fogli
     CELLA_ETICHETTA_SINTESI: "L62",
     PREFISSO_ID: "Off_",
     COLONNE_VERDI: ["L", "N", "S", "T"],
@@ -46,7 +46,7 @@ var CONFIG = {
     COLORE_TAB_DISABILITATA: "#cccccc",
     CELLE_CONSISTENZA: [
       {
-        cella: "S452",
+        cella: "S465",
         nome: "Tipo di assistenza",
         messaggioErrore: "Tipo di assistenza incoerente tra le diverse offerte"
       }

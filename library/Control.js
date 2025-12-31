@@ -92,56 +92,6 @@ function caricaFormuleDiRiferimento() {
 }
 
 /**
- * Carica le label di riferimento dal foglio attivo.
- */
-function caricaLabelDiRiferimento() {
-  var spreadsheetAttivo = SpreadsheetApp.getActiveSpreadsheet();
-  var foglioLabel = spreadsheetAttivo.getSheetByName("Label");
-  
-  if (!foglioLabel) {
-    return { labelMappa: {}, minRiga: 0, maxRiga: 0, minColonna: 0, maxColonna: 0 };
-  }
-  
-  // Carica i dati dal foglio Label
-  var ultimaRiga = foglioLabel.getLastRow();
-  if (ultimaRiga <= 1) {
-    return { labelMappa: {}, minRiga: 0, maxRiga: 0, minColonna: 0, maxColonna: 0 };
-  }
-  
-  var datiLabel = foglioLabel.getRange(2, 1, ultimaRiga - 1, 2).getValues();
-  
-  // Costruisci una mappa per le label attese e trova i range estremi
-  var labelMappa = {};
-  var minRiga = 9999, maxRiga = 0, minColonna = 9999, maxColonna = 0;
-  
-  for (var i = 0; i < datiLabel.length; i++) {
-    if (!datiLabel[i][0]) continue;
-    
-    var riferimentoCella = datiLabel[i][0].toString().trim();
-    var labelAttesa = datiLabel[i][1] !== null ? datiLabel[i][1].toString() : "";
-    
-    labelMappa[riferimentoCella] = labelAttesa;
-    
-    // Calcola le coordinate della cella per determinare il range complessivo
-    var coordinate = convertiA1InCoordinate(riferimentoCella);
-    if (coordinate) {
-      minRiga = Math.min(minRiga, coordinate.riga);
-      maxRiga = Math.max(maxRiga, coordinate.riga);
-      minColonna = Math.min(minColonna, coordinate.colonna);
-      maxColonna = Math.max(maxColonna, coordinate.colonna);
-    }
-  }
-  
-  return {
-    labelMappa: labelMappa,
-    minRiga: minRiga,
-    maxRiga: maxRiga,
-    minColonna: minColonna,
-    maxColonna: maxColonna
-  };
-}
-
-/**
  * Cerca file in Google Drive che corrispondono al pattern.
  */
 function cercaFilesByPattern() {

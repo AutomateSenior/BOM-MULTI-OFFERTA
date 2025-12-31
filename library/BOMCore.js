@@ -22,12 +22,15 @@ function InserimentoBOM(e) {
     var yellowColor = "#ffff00"; // Giallo
     var greenColor = "#00ff00";  // Verde
 
-    // Mappa soglie per celle gialle
+    // Mappa soglie per celle gialle (U430 a U461)
     var thresholds = {
-      "U430": 0.10, "U431": 0.10, "U432": 0.10, "U433": 0.10,"U434": 0.10,
-      "U435": 0.10, "U436": 0.10, "U437": 0.10, "U438": 0.10,"U439": 0.10,
-      "U440": 0.10, "U441": 0.10, "U442": 0.10, "U443": 0.10,"U444": 0.10,
-      "U445": 0.10, "U446": 0.10, "U447": 0.10, "U448": 0.10,"U449": 0.10
+      "U430": 0.10, "U431": 0.10, "U432": 0.10, "U433": 0.10, "U434": 0.10,
+      "U435": 0.10, "U436": 0.10, "U437": 0.10, "U438": 0.10, "U439": 0.10,
+      "U440": 0.10, "U441": 0.10, "U442": 0.10, "U443": 0.10, "U444": 0.10,
+      "U445": 0.10, "U446": 0.10, "U447": 0.10, "U448": 0.10, "U449": 0.10,
+      "U450": 0.10, "U451": 0.10, "U452": 0.10, "U453": 0.10, "U454": 0.10,
+      "U455": 0.10, "U456": 0.10, "U457": 0.10, "U458": 0.10, "U459": 0.10,
+      "U460": 0.10, "U461": 0.10
     };
 
     var cellAddress = range.getA1Notation();
@@ -67,6 +70,17 @@ function columnToLetter(column) {
     column = (column - temp - 1) / 26;
   }
   return letter;
+}
+
+/**
+ * Utility: Converti lettera colonna in numero (A=1, Z=26, AA=27, etc)
+ */
+function letterToColumn(letter) {
+  var column = 0;
+  for (var i = 0; i < letter.length; i++) {
+    column += (letter.charCodeAt(i) - 64) * Math.pow(26, letter.length - i - 1);
+  }
+  return column;
 }
 
 /**

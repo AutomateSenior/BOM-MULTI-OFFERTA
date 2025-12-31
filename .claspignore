@@ -17,3 +17,6 @@
 # Configurazione clasp
 .clasp.json
 .claspignore
+
+# Library directory (libreria separata)
+library/

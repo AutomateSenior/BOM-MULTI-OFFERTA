@@ -1,574 +1,349 @@
-# Manuale Utente - Sistema Multi-Offerta BOM v08
+# BOM Multi-Offerta - Manuale Utente
 
-**Versione**: 08
-**Data**: 26 Novembre 2025
-**Autore**: Sistema BOM Master
+**Versione:** 1.3.0 (Libreria BOM8 v38)
+**Data:** Dicembre 2025  
+**Stato:** Production Ready
 
----
-
-## 📋 Indice
+## Indice
 
 1. [Introduzione](#introduzione)
-2. [Concetti Base](#concetti-base)
-3. [Primo Avvio](#primo-avvio)
-4. [Uso Quotidiano](#uso-quotidiano)
-5. [Funzioni Avanzate](#funzioni-avanzate)
-6. [Risoluzione Problemi](#risoluzione-problemi)
-7. [Domande Frequenti](#domande-frequenti)
+2. [Primo Avvio](#primo-avvio)
+3. [Struttura del Sistema](#struttura-del-sistema)
+4. [Gestione Offerte](#gestione-offerte)
+5. [Rigenerazione Budget](#rigenerazione-budget)
+6. [Celle e Colori](#celle-e-colori)
+7. [Funzionalità Avanzate](#funzionalità-avanzate)
+8. [FAQ e Risoluzione Problemi](#faq-e-risoluzione-problemi)
 
 ---
 
-## 🎯 Introduzione
+## Introduzione
 
-### Cos'è il Sistema Multi-Offerta?
+Il sistema **BOM Multi-Offerta** permette di gestire multiple varianti di un preventivo (Bill of Materials) all'interno di un unico foglio Google Sheets. Ogni variante (offerta) può avere valori diversi per materiali, risorse, costi, e il sistema può generare automaticamente un Budget che rappresenta la somma di una o più offerte selezionate.
 
-Il sistema Multi-Offerta ti permette di **gestire più varianti** di un preventivo BOM nello stesso file Google Sheets, senza dover creare copie separate.
+### Caratteristiche Principali
 
-### Perché usarlo?
-
-**Scenario tradizionale (PRIMA):**
-- Cliente vuole vedere 3 configurazioni diverse
-- Devi creare 3 file separati
-- Difficile mantenere aggiornamenti sincronizzati
-- Rischio di errori tra versioni
-
-**Con il Sistema Multi-Offerta (ADESSO):**
-- **Un solo file** con 3 varianti (Off_01, Off_02, Off_03)
-- **Un clic** per generare il Budget con qualsiasi combinazione
-- Modifiche al template applicate a tutte le varianti
-- Massima flessibilità e zero errori
+- **Multi-Offerta**: Crea e gestisci N varianti di preventivo (Off_01, Off_02, ...)
+- **Rigenerazione Automatica**: Il Budget si rigenera automaticamente dalle offerte attive
+- **Controllo Consistenza**: Verifica automatica della coerenza tra offerte (tipo risorse, valori)
+- **Gestione Intelligente Colori**:
+  - Verde = celle da compilare
+  - Blu = celle processate dal sistema
+  - Giallo = celle per valori MAX
+  - Rosso = errori di consistenza
+- **Integrazione Commesse**: Sincronizzazione automatica con file commesse esterno
 
 ---
 
-## 📚 Concetti Base
+## Primo Avvio
 
-### Struttura del File
+### Passo 1: Verifica Menu
 
-Dopo l'inizializzazione, il tuo file avrà questa struttura:
+1. Apri il foglio Google Sheets
+2. Verifica presenza menu **Automate** nella barra superiore
+3. Se il menu non appare:
+   - Ricarica il foglio (F5 o Cmd+R)
+   - Vai su **Estensioni → Apps Script**
+   - Seleziona funzione `onOpen` e clicca **Esegui** (▶)
+   - Autorizza i permessi richiesti
+   - Ricarica il foglio
 
-```
-📊 Il Tuo File BOM
-│
-├── 📄 Budget           ← Sintesi automatica (quello che mostri al cliente)
-├── 📄 Off_01          ← Prima variante (es: "Configurazione Base")
-├── 📄 Off_02          ← Seconda variante (es: "Configurazione Premium")
-├── 📄 Off_03          ← Terza variante (es: "Configurazione Custom")
-│
-├── 🔒 Master          ← Template nascosto (NON modificare)
-├── 🔒 Configurazione  ← Dati sistema (nascosto)
-├── 🔒 Formule         ← Formule di riferimento (nascosto)
-└── 🔒 Label           ← Etichette di riferimento (nascosto)
-```
+### Passo 2: Inizializzazione Sistema
 
-### Cosa Fa Ogni Foglio?
+**IMPORTANTE**: Questa operazione va eseguita **UNA SOLA VOLTA** su un foglio nuovo.
 
-#### 1. **Budget** (Sintesi)
-- Contiene la **somma** o il **massimo** delle offerte abilitate
-- Si aggiorna **manualmente** quando clicchi "Rigenera Budget"
-- È quello che **esporti e mostri al cliente**
-- **Cella M62** mostra quali offerte sono incluse
-
-#### 2. **Off_01, Off_02, Off_03...** (Varianti)
-- Fogli dove **lavori** e inserisci dati
-- Ogni foglio è una **variante indipendente**
-- Puoi averne **quante ne vuoi** (Off_01...Off_99)
-- Nome personalizzabile (es: "Base", "Premium", "Enterprise")
-
-#### 3. **Master** (Template)
-- Foglio **nascosto e protetto**
-- È il modello da cui partono tutte le nuove offerte
-- **Non modificarlo** direttamente
-
-#### 4. **Configurazione** (Sistema)
-- Foglio **nascosto**
-- Contiene i metadati delle offerte (nome, descrizione, abilitata/disabilitata)
-- Gestito automaticamente dal sistema
-
----
-
-## 🚀 Primo Avvio
-
-### Prerequisiti
-
-- File Google Sheets con foglio **"Budget"** già compilato
-- Accesso al menu "Automate" (se non appare, ricarica la pagina con F5)
-
-### Passo 1: Inizializzazione (Solo la Prima Volta)
-
-1. **Fai un BACKUP del file** (File → Crea una copia)
-2. Apri il file originale
-3. Menu: **Automate → Opzioni Offerta → Inizializza sistema multi-offerta**
-4. Attendi 10-15 secondi
-5. Vedrai una conferma: "Sistema Multi-Offerta Inizializzato! ✓"
-
-**Cosa è successo?**
-- ✅ Creato foglio Master (nascosto)
-- ✅ Creato foglio Configurazione (nascosto)
-- ✅ Creata prima offerta "Off_01"
-- ✅ Budget aggiornato con i dati di Off_01
-
-### Passo 2: Verifica
-
-Controlla che in basso, nei tab dei fogli, ci sia:
-- **Budget** (originale)
-- **Off_01** (nuovo!)
-
-Nella cella **M62** del Budget dovresti vedere:
-```
-Sintesi BOM (Offerta 01)
-```
-
-✅ **Sistema pronto!** Ora puoi iniziare a usarlo.
-
----
-
-## 💼 Uso Quotidiano
-
-### Gestione Rapida Offerte (Metodo Consigliato)
-
-Usa la **dialog rapida** per gestire le offerte in modo veloce:
-
-1. Menu: **Automate → Opzioni Offerta → ⚡ Gestione rapida offerte**
-2. Si apre una finestra elegante con:
-   - Lista di tutte le offerte
-   - Checkbox per abilitare/disabilitare
-   - Preview della sintesi Budget
-   - Pulsante "Rigenera Budget"
-
-**Vantaggi:**
-- ⚡ Velocissima (più della sidebar)
-- 👁️ Preview in tempo reale
-- 🎯 Un solo clic per rigenerare
-- ✨ Chiusura automatica al termine
-
-### Come Lavorare con le Offerte
-
-#### 1. **Creare una Nuova Offerta**
-
-**Metodo A - Dialog Rapida:**
-1. ⚡ Gestione rapida offerte
-2. (In arrivo: pulsante "Aggiungi Offerta" nella dialog)
-
-**Metodo B - Sidebar:**
-1. Menu: **Automate → Opzioni Offerta → Configura offerte...**
-2. Sidebar a destra si apre
-3. Click: **+ Aggiungi Nuova Offerta**
-4. Inserisci nome (es: "Premium")
-5. Inserisci descrizione (es: "Configurazione con moduli extra")
-6. Nuovo foglio **Off_02** creato automaticamente
-
-**Tab colorati:**
-- 🟢 Verde squillante = Offerta **abilitata**
-- ⚫ Grigio = Offerta **disabilitata**
-
-#### 2. **Modificare i Dati di un'Offerta**
-
-1. Apri il foglio **Off_01** (o Off_02, Off_03...)
-2. Modifica i valori come faresti normalmente
-3. **IMPORTANTE:** Modifica solo le celle nelle colonne **S, T, U** (righe 69-495)
-4. Quando hai finito: Menu → **⚡ Gestione rapida offerte** → Rigenera Budget
-
-#### 3. **Abilitare/Disabilitare Offerte**
-
-Puoi scegliere **quali offerte** includere nel Budget:
-
-**Esempio:**
-- Off_01 = Configurazione Base ✅ (abilitata)
-- Off_02 = Configurazione Premium ❌ (disabilitata)
-- Off_03 = Modulo Opzionale ✅ (abilitata)
-
-Budget mostrerà: `Sintesi BOM (Offerta 01+03)`
-
-**Come fare:**
-1. ⚡ Gestione rapida offerte
-2. Spunta/deseleziona le checkbox
-3. Click "Rigenera Budget"
-4. Fatto! Budget aggiornato in 5-10 secondi
-
-#### 4. **Rigenerare il Budget**
-
-Il Budget **non si aggiorna automaticamente**. Devi rigenerarlo manualmente quando vuoi.
-
-**Quando rigenerare:**
-- ✅ Dopo aver modificato dati in Off_XX
-- ✅ Dopo aver abilitato/disabilitato offerte
-- ✅ Dopo aver aggiunto/rimosso offerte
-- ✅ Prima di esportare/condividere il file
-
-**Come rigenerare:**
-
-**Metodo 1 - Dialog Rapida (⚡ più veloce):**
-1. Menu: **Automate → Opzioni Offerta → ⚡ Gestione rapida offerte**
-2. (Eventualmente cambia selezione offerte)
-3. Click: **Rigenera Budget**
-4. Attendi 5-15 secondi
-5. Dialog si chiude automaticamente
-6. Budget aggiornato! ✅
-
-**Metodo 2 - Menu Diretto:**
-1. Menu: **Automate → Opzioni Offerta → Rigenera Budget**
-2. Attendi completamento
-
-### Come Funziona la Rigenerazione?
-
-Il sistema aggiorna il Budget in base alle offerte abilitate:
-
-#### Celle Verdi (Colonne S, T) → **SOMMA**
-Se hai 3 offerte abilitate con questi valori in S100:
-- Off_01: 1000€
-- Off_02: 1500€
-- Off_03: 500€
-
-Budget in S100 mostrerà:
-```
-Formula: =Off_01!S100+Off_02!S100+Off_03!S100
-Risultato: 3000€
-```
-
-#### Celle Gialle (Colonna U) → **MASSIMO**
-Se hai 3 offerte abilitate con questi valori in U100:
-- Off_01: 30 giorni
-- Off_02: 45 giorni
-- Off_03: 20 giorni
-
-Budget in U100 mostrerà:
-```
-Formula: =MAX(Off_01!U100,Off_02!U100,Off_03!U100)
-Risultato: 45 giorni
-```
-
-**Cosa cambia visivamente:**
-- Celle verdi/gialle → **BLU** con testo **BIANCO**
-- Cella M62 → Aggiornata con lista offerte
-
----
-
-## 🎨 Funzioni Avanzate
-
-### Configurare Offerte Dettagliata (Sidebar)
-
-Per modifiche avanzate usa la sidebar completa:
-
-1. Menu: **Automate → Opzioni Offerta → Configura offerte...**
-2. Sidebar si apre sulla destra
-
-**Funzioni disponibili:**
-- ✏️ Modificare descrizione offerta
-- ➕ Aggiungere nuova offerta
-- ❌ Rimuovere offerta
-- ☑️ Abilitare/disabilitare
-- 🔄 Rigenerare Budget
-
-**Nota:** La sidebar è più lenta della dialog rapida, usala solo se devi modificare descrizioni.
-
-### Rimuovere un'Offerta
-
-1. Sidebar: **Configura offerte...**
-2. Click: **Rimuovi Offerta** (icona cestino)
-3. Conferma l'eliminazione
-4. Foglio Off_XX viene eliminato definitivamente
-
-⚠️ **ATTENZIONE:**
-- Non puoi rimuovere l'ultima offerta (deve esisterne almeno una)
-- Operazione **irreversibile** (fai backup prima!)
-
-### Ripristinare Master da Budget
-
-**Scenario:** Hai modificato manualmente il Budget e vuoi usarlo come nuovo template per le future offerte.
-
-**Come fare:**
-1. Menu: **Automate → Opzioni Offerta → Ripristina Master da Budget**
-2. Leggi l'avviso
-3. Conferma
-4. Master viene sovrascritto con il Budget corrente
-
-⚠️ **ATTENZIONE:**
-- Le offerte esistenti (Off_XX) **non cambiano**
-- Solo le **nuove** offerte create dopo useranno il nuovo Master
-- Operazione irreversibile
-
-### Celle Speciali di Consistenza
-
-Alcune celle richiedono **valori identici** in tutte le offerte (non somma o max).
-
-**Esempio:** Cella **S452** (Tipo di assistenza)
-- Se Off_01 = "Standard" e Off_02 = "Premium"
-- Budget mostrerà: ⚠️ **"Tipo di assistenza incoerente tra le diverse offerte"**
-
-**Soluzione:** Assicurati che tutte le offerte abilitate abbiano lo stesso valore in S452.
-
----
-
-## 🛠️ Risoluzione Problemi
-
-### Menu "Opzioni Offerta" non appare
-
-**Causa:** Script non caricato
-**Soluzione:**
-1. Ricarica pagina (F5)
-2. Se persiste: **Estensioni → Apps Script**
-3. Cerca funzione `onOpen` nella lista
-4. Click ▶ **Esegui**
-5. Autorizza permessi se richiesto
-6. Torna al foglio e ricarica (F5)
-
-### "Sistema non inizializzato"
-
-**Causa:** Non hai eseguito l'inizializzazione
-**Soluzione:**
 1. Menu: **Automate → Opzioni Offerta → Inizializza sistema multi-offerta**
-2. Attendi completamento
-3. Riprova l'operazione
+2. Il sistema crea automaticamente:
+   - **Master** (nascosto): copia del Budget originale, riferimento principale
+   - **Configurazione** (nascosto): configurazione sistema multi-offerta
+   - **Off_01**: prima offerta, copia del Master
+3. Il **Budget** viene rigenerato con i dati di Off_01
 
-### Budget non si aggiorna
+### Passo 3: Verifica Creazione Fogli
 
-**Causa:** Devi rigenerare manualmente
-**Soluzione:**
-1. ⚡ Gestione rapida offerte
-2. Click: **Rigenera Budget**
-3. Attendi 5-15 secondi
-4. Verifica cella M62 per conferma
-
-### Cella M62 non mostra nulla
-
-**Causa:** Problema nella rigenerazione
-**Soluzione:**
-1. Apri **Estensioni → Apps Script**
-2. Vai su **Visualizza → Log di esecuzione**
-3. Cerca messaggi con "aggiornaEtichettaSintesi"
-4. Se vedi errori, annota il messaggio e contatta supporto
-
-### "Non puoi rimuovere l'ultima offerta"
-
-**Causa:** Il sistema richiede almeno 1 offerta
-**Soluzione:**
-- Crea una nuova offerta prima di rimuovere l'ultima
-
-### Offerta Off_XX ha tab grigio ma dovrebbe essere abilitata
-
-**Causa:** Configurazione non sincronizzata
-**Soluzione:**
-1. ⚡ Gestione rapida offerte
-2. Disabilita e riabilita l'offerta
-3. Click: **Rigenera Budget**
-4. Tab dovrebbe tornare verde
-
-### Formule non si aggiornano dopo cambio configurazione
-
-**Causa:** Bug risolto nella versione corrente
-**Soluzione:**
-- Verifica di avere l'ultima versione deployata
-- Rigenera Budget due volte consecutive
-
-### Dialog/Sidebar non si carica
-
-**Causa:** Errore JavaScript o timeout
-**Soluzione:**
-1. Apri console browser (F12)
-2. Cerca errori in rosso nella tab "Console"
-3. Chiudi dialog/sidebar
-4. Ricarica pagina (F5)
-5. Riprova
-
-### Celle verdi/gialle non trovate
-
-**Causa:** Colori non riconosciuti dal sistema
-**Soluzione:**
-1. Verifica che le celle siano effettivamente:
-   - **Verdi** in colonne S, T
-   - **Gialle** in colonna U
-2. Range valido: righe 69-495
-3. Se usi colori personalizzati, potrebbero non essere riconosciuti
+1. Guarda i tab in basso: dovresti vedere **Budget**, **Off_01**
+2. Per vedere i fogli nascosti: **Visualizza → Fogli nascosti**
+3. Dovresti vedere **Master** e **Configurazione**
 
 ---
 
-## ❓ Domande Frequenti
+## Struttura del Sistema
 
-### Quante offerte posso creare?
+### Fogli Visibili
 
-Teoricamente illimitate (Off_01...Off_99). Praticamente, consigliamo **massimo 10 offerte** per performance.
+| Foglio | Descrizione | Editabile |
+|--------|-------------|-----------|
+| **Budget** | Foglio principale, somma delle offerte attive | ⚠️ Solo celle verdi prima di rigenerare |
+| **Off_01** | Prima offerta | ✅ Celle verdi |
+| **Off_02** | Seconda offerta (se creata) | ✅ Celle verdi |
+| **Off_XX** | Altre offerte | ✅ Celle verdi |
+| **Formule** | Backup formule Budget | ❌ Gestito automaticamente |
+| **Label** | Backup etichette Budget | ❌ Gestito automaticamente |
 
-### Posso rinominare i fogli Off_XX?
+### Fogli Nascosti
 
-**NO.** Il sistema riconosce le offerte dal nome (Off_01, Off_02...). Se rinomini, l'offerta non funzionerà più.
+| Foglio | Descrizione | Scopo |
+|--------|-------------|-------|
+| **Master** | Template di riferimento | Base per nuove offerte |
+| **Configurazione** | Settings sistema | Elenco offerte e stati |
 
-Puoi però usare il campo **"Descrizione"** nella sidebar per identificare meglio le offerte.
+### Libreria BOM8
 
-### Posso modificare il Budget manualmente?
+Il codice del sistema è organizzato in una libreria Google Apps Script condivisa:
 
-**Sì**, ma le modifiche verranno **sovrascritte** alla prossima rigenerazione.
+**ID Libreria**: `1Q4giGpH67WkMfrWabm8QfTvvg70ueC81044yDDFe1OyHpHFA7d3_gvb1`  
+**Versione Attuale**: 38 (1.3.0)  
+**Percorso**: `/library/`
 
-Se vuoi salvare modifiche manuali come nuovo template: **Ripristina Master da Budget**.
+#### File della Libreria
 
-### Posso lavorare su più offerte contemporaneamente?
-
-**Sì!** Puoi aprire Off_01, Off_02, Off_03 in tab diverse e modificarli in parallelo. Ricorda solo di rigenerare il Budget quando hai finito.
-
-### Il Budget si aggiorna automaticamente?
-
-**NO.** Devi rigenerare manualmente per evitare rallentamenti. Clicca "Rigenera Budget" quando hai finito le modifiche.
-
-### Posso annullare una rigenerazione?
-
-**NO.** La rigenerazione sovrascrive il Budget. Se hai dubbi, fai una copia del file prima di rigenerare.
-
-### Cosa succede se elimino accidentalmente Off_01?
-
-Il foglio viene eliminato definitivamente. Se avevi dati importanti, devi recuperarli da un backup.
-
-**Prevenzione:** Fai backup regolari (File → Crea una copia).
-
-### Posso usare il sistema su file già esistenti?
-
-**Sì!** Basta che il file abbia un foglio chiamato **"Budget"**. L'inizializzazione creerà tutto il necessario senza danneggiare i dati esistenti.
-
-### Posso condividere il file con colleghi?
-
-**Sì!** Il sistema funziona per tutti gli utenti con accesso al file. Ogni utente può:
-- Modificare offerte
-- Rigenerare Budget
-- Aggiungere/rimuovere offerte
-
-⚠️ Attenzione: Non lavorate sulla stessa offerta contemporaneamente!
-
-### Posso esportare il Budget in PDF/Excel?
-
-**Sì!** Il Budget è un normale foglio Google Sheets:
-- **PDF:** File → Scarica → Documento PDF
-- **Excel:** File → Scarica → Microsoft Excel (.xlsx)
-
-### Le formule nel Budget sono modificabili?
-
-Tecnicamente **sì**, ma verranno **sovrascritte** alla prossima rigenerazione. Se vuoi personalizzare formule, modificale **dopo** l'ultima rigenerazione finale.
-
-### Cosa succede se aggiungo righe/colonne?
-
-Il sistema lavora su un **range fisso** (righe 69-495, colonne S-T-U). Se aggiungi righe/colonne:
-- Dentro il range: vengono processate normalmente
-- Fuori dal range: ignorate dalla rigenerazione
+| File | Descrizione |
+|------|-------------|
+| `0_ConfigBase.js` | Configurazioni globali del sistema |
+| `BOMCore.js` | Funzioni core del BOM |
+| `Config.js` | Configurazioni specifiche fogli |
+| `Control.js` | Controlli e validazioni |
+| `OffertaManager.js` | Gestione completa sistema multi-offerta |
+| `RigeneraBudget_V2.js` | Logica rigenerazione Budget con controlli avanzati |
+| `Salva.js` | Salvataggio/ripristino formule ed etichette |
+| `Util.js` | Funzioni di utilità |
 
 ---
 
-## 📞 Supporto
+## Gestione Offerte
 
-### File di Log
+### Aprire la Configurazione
 
-Per diagnosticare problemi:
+**Menu**: **Automate → Opzioni Offerta → Configura offerte...**
+
+Si apre una **sidebar a destra** con:
+- Elenco offerte esistenti
+- Stato (abilitata/disabilitata)
+- Pulsanti di gestione
+
+### Creare Nuova Offerta
+
+1. Nella sidebar, clicca **+ Aggiungi Nuova Offerta**
+2. Inserisci:
+   - **Nome**: es. "Offerta Cliente XYZ"
+   - **Descrizione**: es. "Variante con materiali premium"
+3. Clicca **Aggiungi**
+4. Il sistema crea automaticamente:
+   - Nuovo foglio **Off_XX** (dove XX è il numero progressivo)
+   - Foglio popolato con struttura del Master
+   - Offerta automaticamente **abilitata**
+
+### Modificare Valori in un'Offerta
+
+1. Apri il foglio dell'offerta (es. **Off_01**, **Off_02**)
+2. Modifica SOLO le **celle VERDI** (celle editabili):
+   - Colonna **L**: Descrizione materiale/attività
+   - Colonna **M**: Tipo risorsa (PM, Senior, Expert, ...)
+   - Colonna **N**: Descrizione dettagliata
+   - Colonna **S**: Quantità, ore, mesi
+   - Colonna **T**: Costi unitari
+   - Colonna **U**: Valori MAX (gialle)
+3. Le **celle BLU** contengono formule e sono protette
+
+### Abilitare/Disabilitare Offerta
+
+1. Apri sidebar configurazione
+2. Trova l'offerta nell'elenco
+3. Usa il toggle per abilitare/disabilitare
+4. **Offerta abilitata** = contribuisce al Budget
+5. **Offerta disabilitata** = esclusa dal Budget
+
+### Eliminare Offerta
+
+1. Apri sidebar configurazione
+2. Clicca **Elimina** sull'offerta da rimuovere
+3. Conferma l'operazione
+4. Il foglio viene nascosto (non cancellato definitivamente)
+
+---
+
+## Rigenerazione Budget
+
+### Quando Rigenerare
+
+Il Budget deve essere rigenerato ogni volta che:
+- Modifichi valori in un'offerta
+- Abiliti/disabiliti un'offerta
+- Crei una nuova offerta
+- Modifichi il codice commessa in **Budget\!L56**
+
+### Come Rigenerare
+
+**Metodo 1 - Da Sidebar:**
+1. Apri sidebar configurazione
+2. Seleziona le offerte da includere (abilita/disabilita)
+3. Clicca **Rigenera Budget**
+
+**Metodo 2 - Da Menu:**
+1. Menu: **Automate → Opzioni Offerta → Rigenera Budget**
+
+**Metodo 3 - Da Codice Commessa:**
+1. Modifica cella **Budget\!L56** (codice commessa)
+2. Il sistema rigenera automaticamente
+
+### Cosa Succede Durante la Rigenerazione
+
+Il sistema esegue le seguenti operazioni in sequenza:
+
+#### 1. Pre-caricamento Dati
+- Carica tutti i dati dalle offerte abilitate in memoria
+- Carica i colori delle celle del Budget
+- Identifica le righe con celle verdi/blu/rosse
+
+#### 2. Controllo Consistenza Colonna M (Tipo Risorsa)
+Per ogni riga con dati:
+- Raccoglie i valori della colonna M da tutte le offerte abilitate
+- **Ignora i valori vuoti** ("", null, undefined)
+- Controlla che i valori **non vuoti** siano tutti uguali
+- Se **diversi** → ERRORE:
+  - Cancella contenuto cella M
+  - Imposta nota con dettaglio errore
+  - Sfondo ROSSO (#ea4335)
+- Se **uguali** → OK:
+  - Scrive il valore comune
+  - Se cella verde/blu → mantiene colore
+  - Se cella grigia/rossa → imposta grigio chiaro (#d9d9d9)
+
+**Esempi Controllo M:**
+- Off_01: "PM", Off_02: "PM" → ✅ Scrive "PM"
+- Off_01: "PM", Off_02: "" → ✅ Scrive "PM" (ignora vuoto)
+- Off_01: "", Off_02: "" → ✅ Scrive "" (tutti vuoti)
+- Off_01: "PM", Off_02: "Senior" → ❌ ERRORE con nota
+
+#### 3. Processamento Celle Verdi/Blu
+
+Per ogni colonna (L, N, S, T):
+- **Solo celle verdi o blu** vengono processate
+- Colonna **L** e **N**: CONCATENAZIONE
+  - Unisce i valori dalle offerte con " + "
+  - Esempio: "Mat A" + "Mat B" = "Mat A + Mat B"
+- Colonna **S** e **T**: SOMMA
+  - Somma i valori numerici
+  - Esempio: 100 + 200 = 300
+- **Celle VERDI** → diventano **BLU** (#4285f4)
+- **Celle BLU** → rimangono **BLU**
+
+#### 4. Celle Gialle (Colonna U) - MAX
+- Seleziona il valore **MASSIMO** tra le offerte
+- Esclude cella **S465** (ha validazione dati)
+- Rimangono **GIALLE**
+
+#### 5. Celle Speciali S64 e S65
+- **S64**: Valore anticipo
+- **S65**: Percentuale anticipo
+- Scrive il **VALORE** della somma (non la formula)
+- Mantiene colore **VERDE**
+
+#### 6. Cella S465 (Tipo Assistenza)
+- Se **tutte le offerte** hanno valore → scrive il MAX
+- Se **nessuna offerta** ha valore → lascia vuoto
+- **NON** genera errori di validazione
+
+#### 7. Aggiornamento Etichetta Sintesi
+- Cella **Budget\!L62**
+- Scrive: "Sintesi BOM (Offerta 01+02+...)"
+- Indica quali offerte sono incluse nel Budget
+
+#### 8. Allineamento BOM (controlla)
+- Legge codice commessa da **Budget\!L56**
+- Cerca nel file commesse esterno
+- Aggiorna parametri in Budget e tutte le offerte:
+  - **T2**: Tipo commessa (AUT, MES, SIM/AI)
+  - **S2**: Percentuale generale
+  - **S4, S5, S6**: Tariffe vendita (PM, Senior, Expert)
+  - **T4, T5, T6**: Costi (PM, Senior, Expert)
+
+#### 9. Dialog Finale
+- Se ci sono errori nella colonna M:
+  - Mostra dialog con elenco dettagliato errori
+  - Indica riga e valori diversi
+- Si posiziona sul foglio **Budget**
+
+### Tempi di Esecuzione
+
+Per un Budget con ~450 righe e 2 offerte:
+- Pre-caricamento: ~2s
+- Celle verdi: ~7s
+- Celle gialle: ~1s
+- Totale: **~10-15 secondi**
+
+---
+
+## Celle e Colori
+
+### Sistema Colori
+
+Il sistema usa i colori delle celle per identificare il tipo di cella:
+
+| Colore | Hex | Significato | Comportamento |
+|--------|-----|-------------|---------------|
+| **Verde** | #00ff00 | Cella da compilare | Diventa blu dopo rigenerazione |
+| **Blu** | #4285f4 | Cella processata | Rimane blu |
+| **Giallo** | #ffff00 | Cella MAX | Rimane giallo |
+| **Rosso** | #ea4335 | Errore consistenza | Deve essere corretto |
+| **Grigio chiaro** | #d9d9d9 | Valore scritto (colonna M) | Cella con tipo risorsa comune |
+| **Grigio** | #efefef | Cella neutra | Processata se M è consistente |
+
+### Colonne Importanti
+
+| Colonna | Nome | Tipo | Colore Iniziale | Comportamento |
+|---------|------|------|-----------------|---------------|
+| **L** | Descrizione | Concatenazione | Verde | Verde → Blu |
+| **M** | Tipo Risorsa | Valore unico | Vari | Verde/Blu mantiene, altri → Grigio |
+| **N** | Descrizione Dettagliata | Concatenazione | Verde | Verde → Blu |
+| **S** | Quantità/Ore/Mesi | Somma | Verde | Verde → Blu |
+| **T** | Costo Unitario | Somma | Verde | Verde → Blu |
+| **U** | Valore MAX | Massimo | Giallo | Rimane Giallo |
+
+---
+
+## FAQ e Risoluzione Problemi
+
+### Il menu Automate non appare
+
+**Soluzione**:
+1. Ricarica foglio (F5)
+2. **Estensioni → Apps Script** → Seleziona `onOpen` → **Esegui**
+3. Autorizza permessi
+4. Ricarica foglio
+
+### Celle Budget diventano tutte blu anche se non erano verdi
+
+**Soluzione**: Verifica versione >= 1.2.9 nel log (Estensioni → Apps Script → Esecuzioni)
+
+### "Tipo risorse diverse" ma sono uguali
+
+**Soluzione**: Dalla v38, i valori vuoti vengono ignorati. "PM" + "" = OK
+
+### Budget non si rigenera automaticamente
+
+**Soluzione**: Modifica cella Budget\!L56 o usa Rigenera Budget manuale
+
+### Come vedere i log dettagliati
+
 1. **Estensioni → Apps Script**
-2. **Visualizza → Log di esecuzione**
-3. Cerca messaggi di errore o warning
-
-### Informazioni da Fornire
-
-Se hai problemi, fornisci:
-- Nome del file
-- Operazione che hai tentato
-- Messaggio di errore esatto
-- Screenshot (se possibile)
-- Log di esecuzione (se disponibile)
+2. **Esecuzioni** (icona orologio)
+3. Clicca sull'esecuzione recente
+4. Cerca `[rigeneraBudgetDaOfferte]`
 
 ---
 
-## 🎯 Workflow Consigliato
+## Versioning
 
-### Scenario: Preventivo con 3 Varianti
+### Storia Versioni Recenti
 
-**Obiettivo:** Cliente vuole vedere configurazione Base, Premium e Custom.
-
-#### Fase 1: Setup (Una Tantum)
-1. ✅ Fai backup del file
-2. ✅ Inizializza sistema multi-offerta
-3. ✅ Verifica creazione Off_01
-
-#### Fase 2: Creazione Varianti
-1. ✅ Aggiungi Off_02, nome "Premium"
-2. ✅ Aggiungi Off_03, nome "Custom"
-3. ✅ Popola Off_01 con dati Base
-4. ✅ Popola Off_02 con dati Premium
-5. ✅ Popola Off_03 con dati Custom
-
-#### Fase 3: Generazione Preventivi
-**Solo Base:**
-1. ⚡ Gestione rapida → Abilita solo Off_01
-2. Rigenera Budget
-3. M62 mostra: "Sintesi BOM (Offerta 01)"
-4. Esporta PDF → "Preventivo_Base.pdf"
-
-**Solo Premium:**
-1. ⚡ Gestione rapida → Abilita solo Off_02
-2. Rigenera Budget
-3. M62 mostra: "Sintesi BOM (Offerta 02)"
-4. Esporta PDF → "Preventivo_Premium.pdf"
-
-**Base + Custom:**
-1. ⚡ Gestione rapida → Abilita Off_01 e Off_03
-2. Rigenera Budget
-3. M62 mostra: "Sintesi BOM (Offerta 01+03)"
-4. Esporta PDF → "Preventivo_Base_Custom.pdf"
-
-**Tutte insieme:**
-1. ⚡ Gestione rapida → Abilita tutte
-2. Rigenera Budget
-3. M62 mostra: "Sintesi BOM (Offerta 01+02+03)"
-4. Esporta PDF → "Preventivo_Completo.pdf"
-
-#### Fase 4: Presentazione Cliente
-- Invia i 4 PDF al cliente
-- Cliente sceglie la configurazione preferita
-- Tu sai esattamente cosa hai quotato per ogni variante
+| Versione Libreria | Deploy | Descrizione |
+|-------------------|--------|-------------|
+| **1.3.0** | v38 | Ignora valori vuoti in controllo M |
+| **1.2.9** | v37 | Colonna M sempre processata |
+| **1.2.7** | v35 | Fix formattazione colonna M |
+| **1.2.3** | v31 | Note invece di setValue per errori M |
 
 ---
 
-## ✅ Checklist Rapida
-
-### Prima di Iniziare
-- [ ] Ho fatto backup del file
-- [ ] Il foglio "Budget" esiste ed è compilato
-- [ ] Ho letto il manuale (almeno "Primo Avvio" e "Uso Quotidiano")
-
-### Dopo Inizializzazione
-- [ ] Foglio Off_01 presente
-- [ ] Cella M62 mostra "Sintesi BOM (Offerta 01)"
-- [ ] Menu "Opzioni Offerta" visibile
-- [ ] ⚡ Gestione rapida offerte funziona
-
-### Prima di Esportare Budget
-- [ ] Ho rigenerato il Budget con le offerte desiderate
-- [ ] M62 mostra le offerte corrette
-- [ ] I valori nel Budget sono corretti
-- [ ] I tab Off_XX hanno i colori giusti (verde=abilitato, grigio=disabilitato)
-
----
-
-## 📖 Glossario
-
-**Budget:** Foglio sintesi che mostra la somma/massimo delle offerte abilitate. Quello che esporti e mostri al cliente.
-
-**Offerta (Off_XX):** Singola variante del preventivo. Ogni offerta è un foglio indipendente.
-
-**Master:** Template nascosto da cui vengono create tutte le nuove offerte.
-
-**Rigenerazione:** Processo che aggiorna il Budget sommando/maximizzando i valori delle offerte abilitate.
-
-**Abilitata/Disabilitata:** Stato di un'offerta. Solo le offerte abilitate vengono incluse nel Budget.
-
-**Celle Verdi (S, T):** Celle che vengono sommate (SUM) durante la rigenerazione.
-
-**Celle Gialle (U):** Celle che mostrano il valore massimo (MAX) durante la rigenerazione.
-
-**Celle Blu:** Celle già processate dal sistema (erano verdi o gialle, ora blu con testo bianco).
-
-**M62:** Cella etichetta nel Budget che mostra quali offerte sono incluse.
-
-**Dialog Rapida:** Finestra modale veloce per gestire offerte e rigenerare Budget.
-
-**Sidebar:** Pannello laterale più completo per configurazione avanzata offerte.
-
----
-
-**Fine Manuale**
-
-Versione 08 - 26 Novembre 2025
-Sistema BOM Master con Multi-Offerta
-
-Per assistenza, consulta la sezione "Risoluzione Problemi" o contatta il supporto tecnico.
+**Fine Manuale Utente**

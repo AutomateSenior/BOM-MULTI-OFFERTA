@@ -20,17 +20,28 @@ Sistema completo di gestione Bill of Materials (BOM) per Google Sheets con suppo
 
 ## Architettura
 
-### File JavaScript Core
-- `0_ConfigBase.js` - Configurazioni base del sistema
+### Libreria BOM8 (Google Apps Script Library)
+
+Il codice core del sistema è organizzato in una libreria condivisa deployata su Google Apps Script:
+
+**ID Libreria**: `1Q4giGpH67WkMfrWabm8QfTvvg70ueC81044yDDFe1OyHpHFA7d3_gvb1`
+**Versione Attuale**: 38 (1.3.0)
+**Percorso**: `/library/`
+
+#### File della Libreria (`/library/`)
+- `0_ConfigBase.js` - Configurazioni globali del sistema (versioning, celle, colori, errori)
 - `BOMCore.js` - Funzioni core del BOM
 - `Config.js` - Configurazioni specifiche per fogli e offerte
-- `Control.js` - Controlli e validazioni
-- `OffertaManager.js` - Gestione completa sistema multi-offerta
-- `On Edit.js` - Gestione eventi onEdit
-- `On Open.js` - Menu e inizializzazione
+- `Control.js` - Controlli e validazioni (controlla, cercaNelFileCommessa, aggiornaFoglioBudget)
+- `OffertaManager.js` - Gestione completa sistema multi-offerta (utilities, colori, celle)
+- `RigeneraBudget_V2.js` - Logica avanzata rigenerazione Budget con controlli consistenza
 - `Salva.js` - Funzioni di salvataggio formule/etichette
-- `Test.js` - Funzioni di test
 - `Util.js` - Utility generali
+
+#### File del Progetto (root)
+- `On Edit.js` - Gestione eventi onEdit (trigger L56 per rigenerazione)
+- `On Open.js` - Menu e inizializzazione
+- `Test.js` - Funzioni di test
 
 ### Interfaccia Utente
 - `OffertaConfigUI.html` - Sidebar configurazione offerte
@@ -49,6 +60,27 @@ Sistema completo di gestione Bill of Materials (BOM) per Google Sheets con suppo
 - Accesso al foglio Google Sheets di destinazione
 
 ### Deploy con clasp
+
+#### Deploy Libreria BOM8
+
+```bash
+# Naviga nella cartella libreria
+cd library
+
+# Login a clasp (se non già fatto)
+clasp login
+
+# Push modifiche alla libreria
+clasp push
+
+# Deploy nuova versione libreria con descrizione
+clasp deploy --description "vXX: Descrizione modifiche"
+
+# Visualizza versioni disponibili
+clasp versions
+```
+
+#### Deploy Progetto Principale
 
 ```bash
 # Clone del repository
@@ -69,6 +101,8 @@ clasp push
 # Apri editor Apps Script
 clasp open
 ```
+
+**IMPORTANTE**: Il progetto principale include la libreria BOM8 nel file `appsscript.json`. Aggiorna la versione della libreria quando necessario.
 
 ### Configurazione Manuale
 
@@ -237,9 +271,16 @@ clasp open
 
 ## Versione
 
-**Versione attuale:** V08
-**Data ultima modifica:** Dicembre 2025
+**Versione BOM:** V08
+**Versione Libreria BOM8:** 1.3.0 (Deploy 38)
+**Data ultima modifica:** 31 Dicembre 2025
 **Stato:** Production Ready
+
+### Ultime Modifiche (v1.3.0)
+- **v38 (1.3.0)**: Ignora valori vuoti nel controllo consistenza colonna M
+- **v37 (1.2.9)**: Colonna M sempre processata quando valori uguali
+- **v35 (1.2.7)**: Fix formattazione colonna M (verde/blu/grigio)
+- **v31 (1.2.3)**: Usa note invece di setValue per errori M (evita validation errors)
 
 ## Licenza
 

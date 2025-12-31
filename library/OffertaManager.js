@@ -477,477 +477,9 @@ function aggiornaDescrizioneOfferta(id, descrizione) {
     CONFIG.LOG.error("aggiornaDescrizioneOfferta", "Errore", error);
   }
 }
-
-/**
- * Rigenera il foglio Budget con formule SUM dinamiche per le celle verdi
- */
-function rigeneraBudgetDaOfferte() {
-  try {
-    var tempoInizio = new Date().getTime();
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var budget = ss.getSheetByName(CONFIG.SHEETS.BUDGET);
-
-    if (!budget) {
-      throw new Error("Foglio Budget non trovato!");
-    }
-
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "========== INIZIO RIGENERAZIONE BUDGET (OTTIMIZZATO) ==========");
-
-    // Ottieni offerte abilitate
-    var offerte = getConfigurazioneOfferte();
-    var offerteAbilitate = [];
-    for (var i = 0; i < offerte.length; i++) {
-      if (offerte[i].abilitata) {
-        offerteAbilitate.push(offerte[i].id);
-      }
-    }
-
-    if (offerteAbilitate.length === 0) {
-      throw new Error("Nessuna offerta abilitata! Abilita almeno un'offerta.");
-    }
-
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Offerte abilitate: " + offerteAbilitate.join(", "));
-
-    // V08: Verifica che tutti i fogli offerta esistano realmente
-    var fogliMancanti = [];
-    for (var i = 0; i < offerteAbilitate.length; i++) {
-      var offertaId = offerteAbilitate[i];
-      var foglio = ss.getSheetByName(offertaId);
-      if (!foglio) {
-        fogliMancanti.push(offertaId);
-      }
-    }
-
-    if (fogliMancanti.length > 0) {
-      throw new Error("ERRORE: Fogli offerta mancanti: " + fogliMancanti.join(", ") +
-                      "\n\nVerifica che i fogli esistano con il nome esatto registrato in Configurazione." +
-                      "\n\nSoluzione: Disabilita le offerte mancanti o ricreale con il nome corretto.");
-    }
-
-    // Identifica celle verdi (SUM) nel range 69-520 (include Body Rental fino a 506 + margine)
-    var celleVerdi = getCelleVerdiPerSomma(budget);
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle verdi (SUM) trovate: " + celleVerdi.length);
-
-    // Identifica celle gialle (MAX) nel range 69-520
-    var celleGialle = getCelleGiallePerMax(budget);
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle gialle (MAX) trovate: " + celleGialle.length);
-
-    // Identifica celle verdi concatenazione (colonne L, M, N dopo migrazione V08) nel range 69-520
-    var celleConcatenazione = getCelleVerdiPerConcatenazione(budget);
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle concatenazione (L,M,N) trovate: " + celleConcatenazione.length);
-
-    if (celleVerdi.length === 0 && celleGialle.length === 0 && celleConcatenazione.length === 0) {
-      CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "Nessuna cella da processare trovata nel range 69-520");
-      aggiornaEtichettaSintesi(budget, offerteAbilitate);
-      return;
-    }
-
-    // PARTE 1: Processa celle verdi con SUM (SUPER-OTTIMIZZATO)
-    var tempoParteInizio = new Date().getTime();
-
-    // Separa celle consistenza da celle normali
-    var celleVerdiNormali = [];
-    var celleVerdiConsistenza = [];
-
-    for (var i = 0; i < celleVerdi.length; i++) {
-      var cella = celleVerdi[i];
-      var cellaA1 = columnToLetter(cella.col) + cella.row;
-
-      var isCellaConsistenza = false;
-      for (var k = 0; k < CONFIG.OFFERTE.CELLE_CONSISTENZA.length; k++) {
-        if (CONFIG.OFFERTE.CELLE_CONSISTENZA[k].cella === cellaA1) {
-          isCellaConsistenza = true;
-          break;
-        }
-      }
-
-      if (isCellaConsistenza) {
-        celleVerdiConsistenza.push(cella);
-      } else {
-        celleVerdiNormali.push(cella);
-      }
-    }
-
-    // Processa celle normali in batch VERO (range contigui)
-    if (celleVerdiNormali.length > 0) {
-      // Raggruppa celle per colonna
-      var cellePerColonna = {};
-
-      for (var i = 0; i < celleVerdiNormali.length; i++) {
-        var cella = celleVerdiNormali[i];
-        var col = cella.col;
-
-        if (!cellePerColonna[col]) {
-          cellePerColonna[col] = [];
-        }
-        cellePerColonna[col].push(cella);
-      }
-
-      // Processa ogni colonna con range contigui
-      for (var col in cellePerColonna) {
-        var celle = cellePerColonna[col];
-
-        // Ordina per riga
-        celle.sort(function(a, b) { return a.row - b.row; });
-
-        // Trova blocchi contigui
-        var blocchi = [];
-        var bloccoCorrente = [celle[0]];
-
-        for (var i = 1; i < celle.length; i++) {
-          if (celle[i].row === celle[i-1].row + 1) {
-            // Cella contigua
-            bloccoCorrente.push(celle[i]);
-          } else {
-            // Nuovo blocco
-            blocchi.push(bloccoCorrente);
-            bloccoCorrente = [celle[i]];
-          }
-        }
-        blocchi.push(bloccoCorrente);
-
-        // Processa ogni blocco contiguo con UNA SOLA chiamata getRange
-        for (var b = 0; b < blocchi.length; b++) {
-          var blocco = blocchi[b];
-          var primaRiga = blocco[0].row;
-          var numRighe = blocco.length;
-
-          // Ottieni range intero del blocco
-          var range = budget.getRange(primaRiga, parseInt(col), numRighe, 1);
-
-          // Costruisci array 2D di formule
-          var formule = [];
-          for (var i = 0; i < blocco.length; i++) {
-            var cella = blocco[i];
-            var riferimenti = [];
-            for (var j = 0; j < offerteAbilitate.length; j++) {
-              riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
-            }
-            formule.push(["=" + riferimenti.join("+")]);
-          }
-
-          // Applica formule in batch
-          range.setFormulas(formule);
-
-          // Applica formattazione in batch
-          range.setBackground("#4285f4");
-          range.setFontColor("#ffffff");
-        }
-      }
-
-      var tempoParte = ((new Date().getTime() - tempoParteInizio) / 1000).toFixed(2);
-      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle verdi normali processate: " + celleVerdiNormali.length + " in " + tempoParte + "s");
-    }
-
-    // Processa celle consistenza (rare)
-    for (var i = 0; i < celleVerdiConsistenza.length; i++) {
-      var cella = celleVerdiConsistenza[i];
-      var cellaA1 = columnToLetter(cella.col) + cella.row;
-      var cellRange = budget.getRange(cella.row, cella.col);
-
-      var valori = [];
-      for (var j = 0; j < offerteAbilitate.length; j++) {
-        var offertaId = offerteAbilitate[j];
-        var foglio = ss.getSheetByName(offertaId);
-        if (foglio) {
-          valori.push(foglio.getRange(cellaA1).getValue());
-        }
-      }
-
-      var primoValore = valori[0] || "";
-      var tuttiUguali = valori.every(function(v) { return v === primoValore; });
-
-      if (tuttiUguali) {
-        cellRange.setValue(primoValore);
-        cellRange.setBackground("#4285f4");
-        cellRange.setFontColor("#ffffff");
-      } else {
-        cellRange.setValue(CONFIG.OFFERTE.CELLE_CONSISTENZA[0].messaggioErrore);
-        cellRange.setBackground("#ea4335");
-        cellRange.setFontColor("#ffffff");
-      }
-    }
-
-    // PARTE 2: Processa celle gialle con MAX (SUPER-OTTIMIZZATO)
-    tempoParteInizio = new Date().getTime();
-
-    var celleGialleNormali = [];
-    var celleGialleConsistenza = [];
-
-    for (var i = 0; i < celleGialle.length; i++) {
-      var cella = celleGialle[i];
-      var cellaA1 = columnToLetter(cella.col) + cella.row;
-
-      var isCellaConsistenza = false;
-      for (var k = 0; k < CONFIG.OFFERTE.CELLE_CONSISTENZA.length; k++) {
-        if (CONFIG.OFFERTE.CELLE_CONSISTENZA[k].cella === cellaA1) {
-          isCellaConsistenza = true;
-          break;
-        }
-      }
-
-      if (isCellaConsistenza) {
-        celleGialleConsistenza.push(cella);
-      } else {
-        celleGialleNormali.push(cella);
-      }
-    }
-
-    // Processa celle normali in batch VERO (range contigui)
-    if (celleGialleNormali.length > 0) {
-      // Raggruppa per colonna
-      var cellePerColonna = {};
-
-      for (var i = 0; i < celleGialleNormali.length; i++) {
-        var cella = celleGialleNormali[i];
-        var col = cella.col;
-
-        if (!cellePerColonna[col]) {
-          cellePerColonna[col] = [];
-        }
-        cellePerColonna[col].push(cella);
-      }
-
-      // Processa ogni colonna con range contigui
-      for (var col in cellePerColonna) {
-        var celle = cellePerColonna[col];
-
-        // Ordina per riga
-        celle.sort(function(a, b) { return a.row - b.row; });
-
-        // Trova blocchi contigui
-        var blocchi = [];
-        var bloccoCorrente = [celle[0]];
-
-        for (var i = 1; i < celle.length; i++) {
-          if (celle[i].row === celle[i-1].row + 1) {
-            bloccoCorrente.push(celle[i]);
-          } else {
-            blocchi.push(bloccoCorrente);
-            bloccoCorrente = [celle[i]];
-          }
-        }
-        blocchi.push(bloccoCorrente);
-
-        // Processa ogni blocco contiguo
-        for (var b = 0; b < blocchi.length; b++) {
-          var blocco = blocchi[b];
-          var primaRiga = blocco[0].row;
-          var numRighe = blocco.length;
-
-          // Ottieni range intero del blocco
-          var range = budget.getRange(primaRiga, parseInt(col), numRighe, 1);
-
-          // Costruisci array 2D di formule MAX
-          var formule = [];
-          for (var i = 0; i < blocco.length; i++) {
-            var cella = blocco[i];
-            var riferimenti = [];
-            for (var j = 0; j < offerteAbilitate.length; j++) {
-              riferimenti.push(offerteAbilitate[j] + "!" + columnToLetter(cella.col) + cella.row);
-            }
-            formule.push(["=MAX(" + riferimenti.join(";") + ")"]);
-          }
-
-          // Applica formule in batch
-          range.setFormulas(formule);
-
-          // Applica formattazione in batch
-          range.setBackground("#4285f4");
-          range.setFontColor("#ffffff");
-        }
-      }
-
-      var tempoParte = ((new Date().getTime() - tempoParteInizio) / 1000).toFixed(2);
-      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle gialle normali processate: " + celleGialleNormali.length + " in " + tempoParte + "s");
-    }
-
-    // Processa celle consistenza (rare)
-    for (var i = 0; i < celleGialleConsistenza.length; i++) {
-      var cella = celleGialleConsistenza[i];
-      var cellaA1 = columnToLetter(cella.col) + cella.row;
-      var cellRange = budget.getRange(cella.row, cella.col);
-
-      var valori = [];
-      for (var j = 0; j < offerteAbilitate.length; j++) {
-        var offertaId = offerteAbilitate[j];
-        var foglio = ss.getSheetByName(offertaId);
-        if (foglio) {
-          valori.push(foglio.getRange(cellaA1).getValue());
-        }
-      }
-
-      var primoValore = valori[0] || "";
-      var tuttiUguali = valori.every(function(v) { return v === primoValore; });
-
-      if (tuttiUguali) {
-        cellRange.setValue(primoValore);
-        cellRange.setBackground("#4285f4");
-        cellRange.setFontColor("#ffffff");
-      } else {
-        cellRange.setValue(CONFIG.OFFERTE.CELLE_CONSISTENZA[0].messaggioErrore);
-        cellRange.setBackground("#ea4335");
-        cellRange.setFontColor("#ffffff");
-      }
-    }
-
-    // PARTE 3: Processa celle descrittive (colonne L, M, N) - PRIMO VALORE COMPILATO
-    // V08: Campi descrittivi NON concatenano, prendono primo valore compilato
-    // OTTIMIZZATO: Pre-carica tutti i dati dalle offerte in memoria
-    var datiOfferte = {};
-    for (var j = 0; j < offerteAbilitate.length; j++) {
-      var offertaId = offerteAbilitate[j];
-      var foglio = ss.getSheetByName(offertaId);
-      if (foglio) {
-        // Carica tutto il range in memoria una volta sola
-        var datiRange = foglio.getRange(
-          CONFIG.OFFERTE.RANGE_SOMMA_INIZIO,
-          1,
-          CONFIG.OFFERTE.RANGE_SOMMA_FINE - CONFIG.OFFERTE.RANGE_SOMMA_INIZIO + 1,
-          foglio.getLastColumn()
-        ).getValues();
-        datiOfferte[offertaId] = datiRange;
-      }
-    }
-
-    // Prepara batch per celle descrittive (SUPER-OTTIMIZZATO)
-    var celleToUpdate = [];
-    var celleToClear = [];
-    var valuesToSet = [];
-
-    for (var i = 0; i < celleConcatenazione.length; i++) {
-      var cella = celleConcatenazione[i];
-      var cellaA1 = columnToLetter(cella.col) + cella.row;
-
-      // Raccogli tutti i valori dalle offerte abilitate (da cache in memoria)
-      var valori = [];
-      var offerteConValore = [];
-
-      for (var j = 0; j < offerteAbilitate.length; j++) {
-        var offertaId = offerteAbilitate[j];
-        if (datiOfferte[offertaId]) {
-          var rowIndex = cella.row - CONFIG.OFFERTE.RANGE_SOMMA_INIZIO;
-          var colIndex = cella.col - 1; // 0-based
-          var valore = datiOfferte[offertaId][rowIndex][colIndex];
-
-          if (valore !== null && valore !== undefined && valore !== "") {
-            valori.push(valore);
-            offerteConValore.push(offertaId);
-          }
-        }
-      }
-
-      // Controllo multi-riempimento: se 2+ offerte hanno lo stesso campo compilato → ERRORE
-      if (valori.length > 1) {
-        var errMsg = "ERRORE: Campo descrittivo " + cellaA1 + " compilato in multiple offerte (" +
-                     offerteConValore.join(", ") + "). Ogni campo descrittivo può essere compilato in una sola offerta.";
-        CONFIG.LOG.error("rigeneraBudgetDaOfferte", errMsg);
-        throw new Error(errMsg);
-      }
-
-      // Prepara per batch update
-      if (valori.length === 1) {
-        celleToUpdate.push(cella);
-        valuesToSet.push(valori[0]);
-      } else {
-        celleToClear.push(cella);
-      }
-    }
-
-    // Batch update valori e colori (OTTIMIZZATO senza getRanges)
-    if (celleToUpdate.length > 0) {
-      for (var i = 0; i < celleToUpdate.length; i++) {
-        var cella = celleToUpdate[i];
-        var cellRange = budget.getRange(cella.row, cella.col);
-
-        // Rimuovi validazione se presente
-        var validation = cellRange.getDataValidation();
-        if (validation) {
-          cellRange.setDataValidation(null);
-        }
-
-        // Scrivi valore e formattazione
-        cellRange.setValue(valuesToSet[i]);
-        cellRange.setBackground("#4285f4");
-        cellRange.setFontColor("#ffffff");
-      }
-    }
-
-    // Batch clear celle vuote (OTTIMIZZATO)
-    if (celleToClear.length > 0) {
-      for (var i = 0; i < celleToClear.length; i++) {
-        var cella = celleToClear[i];
-        var cellRange = budget.getRange(cella.row, cella.col);
-
-        cellRange.clearContent();
-        cellRange.setBackground(null);
-        cellRange.setFontColor(null);
-      }
-    }
-
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle descrittive processate: " + celleConcatenazione.length +
-                    " (valorizzate: " + celleToUpdate.length + ", vuote: " + celleToClear.length + ")");
-
-    // Aggiorna etichetta M62
-    aggiornaEtichettaSintesi(budget, offerteAbilitate);
-
-    // Aggiorna colori tab offerte
-    aggiornaColoriTabOfferte(ss, offerte);
-
-    // Ordina tab offerte in ordine crescente
-    ordinaTabOfferte(ss, offerte);
-
-    // V08: Cancella indicatore rigenerazione (completata con successo)
-    impostaIndicatoreRigenerazione(false);
-
-    // Forza flush e ricalcolo formule - UNA SOLA VOLTA ALLA FINE
-    SpreadsheetApp.flush();
-
-    // Calcola tempo di esecuzione
-    var tempoFine = new Date().getTime();
-    var tempoEsecuzione = ((tempoFine - tempoInizio) / 1000).toFixed(2);
-
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "========== BUDGET RIGENERATO CON SUCCESSO ==========");
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Tempo di esecuzione: " + tempoEsecuzione + " secondi");
-
-    // V08: Forza ricalcolo formule per risolvere eventuali errori di riferimento da rigenerazioni precedenti
-    // Questo è necessario quando i fogli referenziati nelle formule sono stati ricreati
-    try {
-      // Trigger ricalcolo toccando una cella formula
-      var primaFormulaCell = budget.getRange(CONFIG.OFFERTE.RANGE_SOMMA_INIZIO, letterToColumn("S"));
-      var formula = primaFormulaCell.getFormula();
-      if (formula) {
-        primaFormulaCell.setFormula(formula); // Re-imposta stessa formula per trigger ricalcolo
-        SpreadsheetApp.flush();
-      }
-    } catch (e) {
-      CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "Impossibile forzare ricalcolo: " + e);
-    }
-
-  } catch (error) {
-    CONFIG.LOG.error("rigeneraBudgetDaOfferte", "Errore", error);
-    throw error;
-  }
-}
-
-/**
- * Converti numero colonna in lettera (1 -> A, 27 -> AA, etc)
- * @param {number} column - Numero colonna (1-based)
- * @returns {string} Lettera colonna
- */
-function columnToLetter(column) {
-  var temp, letter = '';
-  while (column > 0) {
-    temp = (column - 1) % 26;
-    letter = String.fromCharCode(temp + 65) + letter;
-    column = (column - temp - 1) / 26;
-  }
-  return letter;
-}
-
 /**
  * Identifica le celle verdi nel range configurato del foglio Budget
- * V08: Range 69-520 (include Body Rental 494-506)
+ * V08: Range 69-515 (include Body Rental 494-506)
  * Cerca solo nelle colonne specificate in CONFIG.OFFERTE.COLONNE_VERDI
  * @param {Sheet} sheet - Foglio da analizzare
  * @returns {Array<Object>} Array di {row, col}
@@ -1030,10 +562,17 @@ function getCelleGiallePerMax(sheet) {
 
       // Cerca celle gialle o blu (già processate)
       for (var row = 0; row < backgrounds.length; row++) {
+        var rowNum = CONFIG.OFFERTE.RANGE_SOMMA_INIZIO + row;
         var color = backgrounds[row][0].toLowerCase();
+
+        // Escludi S465 (ha gestione speciale con validazione dati)
+        if (rowNum === 465 && colonnaLettera === "S") {
+          continue;
+        }
+
         if (isColoreGiallo(color) || isColoreBlu(color)) {
           celleGialle.push({
-            row: CONFIG.OFFERTE.RANGE_SOMMA_INIZIO + row,
+            row: rowNum,
             col: colonnaNum
           });
         }
@@ -1097,20 +636,6 @@ function getCelleVerdiPerConcatenazione(sheet) {
 }
 
 /**
- * Converti lettera colonna in numero (A -> 1, Z -> 26, AA -> 27, etc)
- * @param {string} letter - Lettera colonna
- * @returns {number} Numero colonna (1-based)
- */
-function letterToColumn(letter) {
-  var column = 0;
-  var length = letter.length;
-  for (var i = 0; i < length; i++) {
-    column += (letter.charCodeAt(i) - 64) * Math.pow(26, length - i - 1);
-  }
-  return column;
-}
-
-/**
  * Verifica se un colore è verde
  * @param {string} color - Colore in formato hex
  * @returns {boolean}
@@ -1158,6 +683,16 @@ function isColoreGiallo(color) {
   ];
 
   return coloriGialli.indexOf(color) > -1;
+}
+
+/**
+ * Verifica se un colore è rosso errore (usato per errori M)
+ * @param {string} color - Colore in formato hex
+ * @returns {boolean}
+ */
+function isColoreRossoErrore(color) {
+  // Solo il rosso specifico usato per gli errori
+  return color === "#ea4335";
 }
 
 /**
@@ -1424,7 +959,7 @@ function azzeraOffertaSingola(offertaId) {
       throw new Error("Offerta " + offertaId + " non trovata");
     }
 
-    // Azzera le celle nelle colonne configurate (range configurato 69-520)
+    // Azzera le celle nelle colonne configurate (range configurato 69-515)
     var colonneTarget = CONFIG.OFFERTE.COLONNE_VERDI
       .concat(CONFIG.OFFERTE.COLONNE_GIALLE)
       .concat(CONFIG.OFFERTE.COLONNE_CONCATENAZIONE);

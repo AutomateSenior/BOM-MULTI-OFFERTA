@@ -8,7 +8,7 @@ function onOpen() {
 
     // Se è versione BETA, aggiungi watermark (con controllo)
     try {
-      if (BOM8.CONFIG && BOM8.CONFIG.VERSION && BOM8.CONFIG.VERSION.IS_BETA) {
+      if (CONFIG && CONFIG.VERSION && CONFIG.VERSION.IS_BETA) {
         aggiungiWatermarkBeta();
       }
     } catch (e) {
@@ -18,7 +18,7 @@ function onOpen() {
     // Crea il menu principale (con indicatore BETA se necessario)
     var isBeta = false;
     try {
-      isBeta = BOM8.CONFIG && BOM8.CONFIG.VERSION && BOM8.CONFIG.VERSION.IS_BETA;
+      isBeta = CONFIG && CONFIG.VERSION && CONFIG.VERSION.IS_BETA;
     } catch (e) {}
 
     var titoloMenu = isBeta ? '⚠️ Automate [BETA]' : 'Automate';
@@ -57,8 +57,8 @@ function onOpen() {
   } catch (e) {
     // Sistema non inizializzato o libreria non ancora caricata, ignora
     try {
-      if (BOM8.CONFIG && BOM8.CONFIG.LOG) {
-        BOM8.CONFIG.LOG.warn("onOpen", "Errore creazione menu dinamico: " + e.toString());
+      if (CONFIG && CONFIG.LOG) {
+        CONFIG.LOG.warn("onOpen", "Errore creazione menu dinamico: " + e.toString());
       }
     } catch (logError) {}
   }
@@ -137,7 +137,7 @@ function installaAttivatore() {
 function aggiungiWatermarkBeta() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var budget = ss.getSheetByName(BOM8.CONFIG.SHEETS.BUDGET);
+    var budget = ss.getSheetByName(CONFIG.SHEETS.BUDGET);
 
     if (!budget) {
       return;
@@ -145,7 +145,7 @@ function aggiungiWatermarkBeta() {
 
     // Aggiungi watermark in cella A1
     var cella = budget.getRange("A1");
-    cella.setValue(BOM8.CONFIG.VERSION.BETA_WARNING);
+    cella.setValue(CONFIG.VERSION.BETA_WARNING);
     cella.setBackground("#ff6b35");  // Arancione acceso
     cella.setFontColor("#ffffff");   // Bianco
     cella.setFontWeight("bold");
@@ -157,10 +157,10 @@ function aggiungiWatermarkBeta() {
     var protection = cella.protect().setDescription("Watermark BETA - Non modificare");
     protection.setWarningOnly(true);
 
-    BOM8.CONFIG.LOG.info("aggiungiWatermarkBeta", "Watermark BETA aggiunto in Budget!A1");
+    CONFIG.LOG.info("aggiungiWatermarkBeta", "Watermark BETA aggiunto in Budget!A1");
 
   } catch (error) {
-    BOM8.CONFIG.LOG.error("aggiungiWatermarkBeta", "Errore", error);
+    CONFIG.LOG.error("aggiungiWatermarkBeta", "Errore", error);
   }
 }
 
@@ -179,8 +179,8 @@ function mostraGestioneRapidaOfferte() {
     SpreadsheetApp.getUi().showModalDialog(html, 'Gestione Rapida Offerte');
 
   } catch (error) {
-    if (BOM8.CONFIG && BOM8.CONFIG.LOG) {
-      BOM8.CONFIG.LOG.error("mostraGestioneRapidaOfferte", "Errore", error);
+    if (CONFIG && CONFIG.LOG) {
+      CONFIG.LOG.error("mostraGestioneRapidaOfferte", "Errore", error);
     }
     SpreadsheetApp.getUi().alert("Errore: " + error.toString());
   }
@@ -198,8 +198,8 @@ function mostraConfigurazioneOfferte() {
     SpreadsheetApp.getUi().showSidebar(html);
 
   } catch (error) {
-    if (BOM8.CONFIG && BOM8.CONFIG.LOG) {
-      BOM8.CONFIG.LOG.error("mostraConfigurazioneOfferte", "Errore", error);
+    if (CONFIG && CONFIG.LOG) {
+      CONFIG.LOG.error("mostraConfigurazioneOfferte", "Errore", error);
     }
     SpreadsheetApp.getUi().alert("Errore: " + error.toString());
   }
@@ -213,7 +213,7 @@ function mostraConfigurazioneOfferte() {
  */
 function isBetaVersion() {
   try {
-    return BOM8.CONFIG && BOM8.CONFIG.VERSION && CONFIG.VERSION.IS_BETA;
+    return CONFIG && CONFIG.VERSION && CONFIG.VERSION.IS_BETA;
   } catch (e) {
     return false;
   }
@@ -341,7 +341,7 @@ function rimuoviOfferta(id) {
  */
 function azzeraOfferta(id) {
   try {
-    return BOM8.azzeraOffertaSingola(id);
+    return azzeraOffertaSingola(id);
   } catch (error) {
     Logger.log("Errore azzeraOfferta: " + error.toString());
     throw error;
@@ -353,33 +353,13 @@ function azzeraOfferta(id) {
 /**
  * NOTA: Funzioni libreria temporaneamente disabilitate per debug
  */
-// function verificaFormuleTutteLeOfferte() { return BOM8.verificaFormuleTutteLeOfferte(); }
-// function verificaLabelTutteLeOfferte() { return BOM8.verificaLabelTutteLeOfferte(); }
-// function verificaFormuleELabelTutteLeOfferte() { return BOM8.verificaFormuleELabelTutteLeOfferte(); }
-// function ripristinaFormuleTutteLeOfferte() { return BOM8.ripristinaFormuleTutteLeOfferte(); }
-// function ripristinaLabelTutteLeOfferte() { return BOM8.ripristinaLabelTutteLeOfferte(); }
-// function ripristinaFormuleELabelTutteLeOfferte() { return BOM8.ripristinaFormuleELabelTutteLeOfferte(); }
-// function azzeraOfferta_Off_01() { return BOM8.azzeraOfferta("Off_01"); }
-// function azzeraOfferta_Off_02() { return BOM8.azzeraOfferta("Off_02"); }
+// function verificaFormuleTutteLeOfferte() { return BOMLib.verificaFormuleTutteLeOfferte(); }
+// function verificaLabelTutteLeOfferte() { return BOMLib.verificaLabelTutteLeOfferte(); }
+// function verificaFormuleELabelTutteLeOfferte() { return BOMLib.verificaFormuleELabelTutteLeOfferte(); }
+// function ripristinaFormuleTutteLeOfferte() { return BOMLib.ripristinaFormuleTutteLeOfferte(); }
+// function ripristinaLabelTutteLeOfferte() { return BOMLib.ripristinaLabelTutteLeOfferte(); }
+// function ripristinaFormuleELabelTutteLeOfferte() { return BOMLib.ripristinaFormuleELabelTutteLeOfferte(); }
+// function azzeraOfferta_Off_01() { return BOMLib.azzeraOfferta("Off_01"); }
+// function azzeraOfferta_Off_02() { return BOMLib.azzeraOfferta("Off_02"); }
 // ... altre funzioni azzera commentate per debug
 
-
-// ===== WRAPPER FUNZIONI DA LIBRERIA =====
-// Queste funzioni sono chiamate dal menu e fanno da wrapper alle funzioni della libreria
-
-/**
- * Funzioni chiamate dal menu - delegano alla libreria BOM8
- */
-function controlla() { return BOM8.controlla(); }
-function rigeneraBudgetDaOfferte() { return BOM8.rigeneraBudgetDaOfferte(); }
-function azzeraTutteLeOfferte() { return BOM8.azzeraTutteLeOfferte(); }
-function aggiungiNuovaOfferta(nome, descrizione) { return BOM8.aggiungiNuovaOfferta(nome, descrizione); }
-function rigeneraBudget() { return BOM8.rigeneraBudget(); }
-
-// Funzioni verifica e ripristino
-function verificaFormuleTutteLeOfferte() { return BOM8.verificaFormuleTutteLeOfferte(); }
-function verificaLabelTutteLeOfferte() { return BOM8.verificaLabelTutteLeOfferte(); }
-function verificaFormuleELabelTutteLeOfferte() { return BOM8.verificaFormuleELabelTutteLeOfferte(); }
-function ripristinaFormuleTutteLeOfferte() { return BOM8.ripristinaFormuleTutteLeOfferte(); }
-function ripristinaLabelTutteLeOfferte() { return BOM8.ripristinaLabelTutteLeOfferte(); }
-function ripristinaFormuleELabelTutteLeOfferte() { return BOM8.ripristinaFormuleELabelTutteLeOfferte(); }

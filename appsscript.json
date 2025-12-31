@@ -9,6 +9,11 @@
       "userSymbol": "Drive",
       "serviceId": "drive",
       "version": "v3"
+    }],
+    "libraries": [{
+      "userSymbol": "BOM8",
+      "libraryId": "1Q4giGpH67WkMfrWabm8QfTvvg70ueC81044yDDFe1OyHpHFA7d3_gvb1",
+      "version": "34"
     }]
   },
   "exceptionLogging": "STACKDRIVER",

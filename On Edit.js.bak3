@@ -13,9 +13,9 @@ function Inserimento(e){
 
       if (sheetName === "Budget" && cellAddress === "L56") {
         Logger.log("Inserimento: Rilevata modifica L56, avvio allineamento BOM");
-        BOM8.CONFIG.LOG.info("Inserimento", "Modificata cella L56, avvio allineamento BOM");
+        BOMLib.CONFIG.LOG.info("Inserimento", "Modificata cella L56, avvio allineamento BOM");
 
-        BOM8.controlla(SpreadsheetApp.getActiveSpreadsheet(), false);  // Funzione locale in BOMCore.js
+        BOMLib.controlla(SpreadsheetApp.getActiveSpreadsheet(), false);  // Funzione locale in BOMCore.js
 
         Logger.log("Inserimento: Allineamento BOM completato");
         return; // Esci dopo aver gestito L56
@@ -23,14 +23,14 @@ function Inserimento(e){
     }
   } catch (error) {
     Logger.log("Inserimento: ERRORE trigger L56 - " + error.toString());
-    BOM8.CONFIG.LOG.error("Inserimento", "Errore trigger L56", error);
+    BOMLib.CONFIG.LOG.error("Inserimento", "Errore trigger L56", error);
   }
 
   // Gestione trigger standard BOM (solo se non è L56)
   try {
-    BOM8.InserimentoBOM(e);  // Funzione locale in BOMCore.js
+    BOMLib.InserimentoBOM(e);  // Funzione locale in BOMCore.js
   } catch (error) {
-    BOM8.CONFIG.LOG.error("Inserimento", "Errore InserimentoBOM", error);
+    BOMLib.CONFIG.LOG.error("Inserimento", "Errore InserimentoBOM", error);
   }
 }
 
