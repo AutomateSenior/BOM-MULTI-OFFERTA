@@ -6,10 +6,15 @@ function onOpen() {
   try {
     var ui = SpreadsheetApp.getUi();
 
-    // Se è versione BETA, aggiungi watermark (con controllo)
+    // Gestione watermark BETA
     try {
-      if (BOM8.CONFIG && BOM8.CONFIG.VERSION && BOM8.CONFIG.VERSION.IS_BETA) {
-        aggiungiWatermarkBeta();
+      if (BOM8.CONFIG && BOM8.CONFIG.VERSION) {
+        if (BOM8.CONFIG.VERSION.IS_BETA) {
+          aggiungiWatermarkBeta();
+        } else {
+          // Se non è BETA, rimuovi eventuale watermark esistente
+          rimuoviWatermarkBeta();
+        }
       }
     } catch (e) {
       // Ignora errori watermark
@@ -161,6 +166,39 @@ function aggiungiWatermarkBeta() {
 
   } catch (error) {
     BOM8.CONFIG.LOG.error("aggiungiWatermarkBeta", "Errore", error);
+  }
+}
+
+/**
+ * Rimuove watermark BETA dal foglio Budget
+ */
+function rimuoviWatermarkBeta() {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var budget = ss.getSheetByName(BOM8.CONFIG.SHEETS.BUDGET);
+
+    if (!budget) {
+      return;
+    }
+
+    var cella = budget.getRange("A1");
+
+    // Rimuovi protezione se esiste
+    var protections = budget.getProtections(SpreadsheetApp.ProtectionType.RANGE);
+    for (var i = 0; i < protections.length; i++) {
+      if (protections[i].getDescription() === "Watermark BETA - Non modificare") {
+        protections[i].remove();
+      }
+    }
+
+    // Pulisci la cella
+    cella.clearContent();
+    cella.clearFormat();
+
+    BOM8.CONFIG.LOG.info("rimuoviWatermarkBeta", "Watermark BETA rimosso da Budget!A1");
+
+  } catch (error) {
+    // Ignora errori (potrebbe non esserci watermark)
   }
 }
 
