@@ -71,6 +71,13 @@ var CONFIG = {
       cost: [84, 68, 45],
       vend: [90, 75, 65]
     },
+    BI: {
+      nome: "BI",
+      perc: 0.25,
+      percLinea: 0.35,
+      cost: [84, 68, 45],
+      vend: [90, 75, 65]
+    },
     "SIM/AI": {
       nome: "SIM/AI",
       perc: 0.3,
