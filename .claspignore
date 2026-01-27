@@ -18,5 +18,12 @@
 .clasp.json
 .claspignore
 
-# Library directory (libreria separata)
+# Library directory (libreria separata - ha il suo progetto clasp)
+library/**
 library/
+
+# File di backup
+*.bak
+*.bak2
+*.bak3
+*_CORRECTED.js

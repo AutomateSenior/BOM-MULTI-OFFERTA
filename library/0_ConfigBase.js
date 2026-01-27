@@ -8,7 +8,7 @@ var CONFIG = {
   /**
    * Versione libreria
    */
-  LIB_VERSION: "1.3.0",
+  LIB_VERSION: "1.4.0",
 
   /**
    * File esterni
@@ -36,7 +36,7 @@ var CONFIG = {
    */
   OFFERTE: {
     RANGE_SOMMA_INIZIO: 69,
-    RANGE_SOMMA_FINE: 515,  // V08: Ultima riga dei fogli
+    RANGE_SOMMA_FINE: 526,  // V08: Ultima riga dei fogli (aggiornato dopo inserimento Sviluppo Software)
     CELLA_ETICHETTA_SINTESI: "L62",
     PREFISSO_ID: "Off_",
     COLONNE_VERDI: ["L", "N", "S", "T"],
@@ -46,7 +46,7 @@ var CONFIG = {
     COLORE_TAB_DISABILITATA: "#cccccc",
     CELLE_CONSISTENZA: [
       {
-        cella: "S465",
+        cella: "S476",
         nome: "Tipo di assistenza",
         messaggioErrore: "Tipo di assistenza incoerente tra le diverse offerte"
       }
@@ -113,34 +113,34 @@ var CONFIG = {
    */
   RIGHE_V08: {
     MATERIALI: {
-      HEADER: 429,         // Riga header L3 "Acquisti"
-      INIZIO: 430,         // Prima riga materiali L4
-      FINE: 448,           // Ultima riga materiali L4
+      HEADER: 440,         // Riga header L3 "Acquisti" (+11 dopo Sviluppo Software)
+      INIZIO: 441,         // Prima riga materiali L4
+      FINE: 459,           // Ultima riga materiali L4
       NUM_RIGHE: 19        // Totale righe materiali
     },
     BODY_RENTAL: {
-      HEADER: 494,         // Riga header L2 "Body Rental"
+      HEADER: 505,         // Riga header L2 "Body Rental" (+11 dopo Sviluppo Software)
       PM: {
-        HEADER: 495,       // Header L3 "Project Manager"
-        DETTAGLIO_INIZIO: 496,
-        DETTAGLIO_FINE: 498,
+        HEADER: 506,       // Header L3 "Project Manager"
+        DETTAGLIO_INIZIO: 507,
+        DETTAGLIO_FINE: 509,
         CELLE_COSTI: { RICAVO: "X4", COSTO: "Y4" }
       },
       SENIOR: {
-        HEADER: 499,       // Header L3 "Senior Consultant"
-        DETTAGLIO_INIZIO: 500,
-        DETTAGLIO_FINE: 502,
+        HEADER: 510,       // Header L3 "Senior Consultant"
+        DETTAGLIO_INIZIO: 511,
+        DETTAGLIO_FINE: 513,
         CELLE_COSTI: { RICAVO: "X5", COSTO: "Y5" }
       },
       EXPERT: {
-        HEADER: 503,       // Header L3 "Expert Consultant"
-        DETTAGLIO_INIZIO: 504,
-        DETTAGLIO_FINE: 506,
+        HEADER: 514,       // Header L3 "Expert Consultant"
+        DETTAGLIO_INIZIO: 515,
+        DETTAGLIO_FINE: 517,
         CELLE_COSTI: { RICAVO: "X6", COSTO: "Y6" }
       },
       COLONNA_MESI: "S"    // Colonna per input mesi (gialla)
     },
-    ONERI_SICUREZZA: 507   // V08: Era 495 prima di Body Rental
+    ONERI_SICUREZZA: 518   // V08: Era 507 prima di Sviluppo Software
   },
 
   /**

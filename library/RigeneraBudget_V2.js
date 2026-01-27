@@ -4,10 +4,10 @@
  * Logica:
  * - Per ogni riga con celle verdi riempite
  * - Controlla colonna M in tutte le offerte
- * - Se M uguale → processa L (concat), N (sum se >508, concat se <=508), S/T (sum)
+ * - Se M uguale → processa L (concat), N (sum se >519, concat se <=519), S/T (sum)
  * - Se M diverso → ERRORE in M, salta altre colonne
  * - Celle gialle U → MAX (invariato)
- * - Controllo consistenza S465
+ * - Controllo consistenza S476
  */
 
 
@@ -207,11 +207,11 @@ function rigeneraBudgetDaOfferte() {
         aggiornamenti.L.push({riga: riga, valore: valoriL.join(", ")});
       }
 
-      // Colonna N - SUM se >508, CONCATENAZIONE altrimenti (solo se verde/blu)
+      // Colonna N - SUM se >519, CONCATENAZIONE altrimenti (solo se verde/blu)
       var chiaveN = riga + "_" + colN;
       var coloreN = coloriBudget[chiaveN];
       if (isColoreVerde(coloreN) || isColoreBlu(coloreN)) {
-        if (riga > 508) {
+        if (riga > 519) {
           // SUM - Formula
           var riferimenti = [];
           for (var i = 0; i < offerteAbilitate.length; i++) {
@@ -231,14 +231,14 @@ function rigeneraBudgetDaOfferte() {
         }
       }
 
-      // Colonne S e T - SUM (Formula) - solo se verde/blu ed escludi S465
+      // Colonne S e T - SUM (Formula) - solo se verde/blu ed escludi S476
       ["S", "T"].forEach(function(colLetter) {
         var colNum = letterToColumn(colLetter);
         var chiave = riga + "_" + colNum;
         var colore = coloriBudget[chiave];
 
-        // Escludi S465 (ha gestione speciale)
-        if (riga === 465 && colLetter === "S") {
+        // Escludi S476 (ha gestione speciale, era S476 prima di Sviluppo Software)
+        if (riga === 476 && colLetter === "S") {
           return;
         }
 
@@ -357,7 +357,7 @@ function rigeneraBudgetDaOfferte() {
     var tempoGialle = ((new Date().getTime() - tempoGialleInizio) / 1000).toFixed(2);
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Celle gialle processate in " + tempoGialle + "s");
 
-    // 5b. GESTIONE SPECIALE S64 e S65 (fuori dal range principale 69-515)
+    // 5b. GESTIONE SPECIALE S64 e S65 (fuori dal range principale 69-526)
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "=== INIZIO GESTIONE S64 e S65 ===");
     [64, 65].forEach(function(riga) {
       var cellS = budget.getRange("S" + riga);
@@ -407,44 +407,44 @@ function rigeneraBudgetDaOfferte() {
     });
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "=== FINE GESTIONE S64 e S65 ===");
 
-    // 6. CONTROLLO CONSISTENZA S465
-    var cellConsistenza = budget.getRange("S465");
-    var valoriS465 = [];
+    // 6. CONTROLLO CONSISTENZA S476
+    var cellConsistenza = budget.getRange("S476");
+    var valoriS476 = [];
     for (var i = 0; i < offerteAbilitate.length; i++) {
       var foglio = ss.getSheetByName(offerteAbilitate[i]);
-      valoriS465.push(foglio.getRange("S465").getValue());
+      valoriS476.push(foglio.getRange("S476").getValue());
     }
 
     // Filtra valori non vuoti
-    var valoriS465NonVuoti = [];
-    for (var i = 0; i < valoriS465.length; i++) {
-      if (valoriS465[i] && String(valoriS465[i]).trim() !== "") {
-        valoriS465NonVuoti.push(String(valoriS465[i]).trim());
+    var valoriS476NonVuoti = [];
+    for (var i = 0; i < valoriS476.length; i++) {
+      if (valoriS476[i] && String(valoriS476[i]).trim() !== "") {
+        valoriS476NonVuoti.push(String(valoriS476[i]).trim());
       }
     }
 
-    if (valoriS465NonVuoti.length === 0) {
+    if (valoriS476NonVuoti.length === 0) {
       // Nessuna offerta ha un valore → lascia vuoto in Budget SENZA formattazione
       cellConsistenza.clearContent();
       // Non applicare formattazione per evitare conflitti con validazione dati
-      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S465: nessun valore nelle offerte, lasciato vuoto");
+      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S476: nessun valore nelle offerte, lasciato vuoto");
     } else {
       // Controlla se tutti i valori non vuoti sono uguali
-      var primoValore = valoriS465NonVuoti[0];
-      var tuttiUguali = valoriS465NonVuoti.every(function(v) { return v === primoValore; });
+      var primoValore = valoriS476NonVuoti[0];
+      var tuttiUguali = valoriS476NonVuoti.every(function(v) { return v === primoValore; });
 
       if (tuttiUguali) {
         // Tutti uguali → scrivi il valore
         cellConsistenza.setValue(primoValore);
         cellConsistenza.setBackground("#4285f4");
         cellConsistenza.setFontColor("#ffffff");
-        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S465: " + primoValore);
+        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S476: " + primoValore);
       } else {
         // Valori diversi → ERRORE
         cellConsistenza.setValue("Tipo di assistenza incoerente tra le diverse offerte");
         cellConsistenza.setBackground("#ea4335");
         cellConsistenza.setFontColor("#ffffff");
-        CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "S465: ERRORE - valori diversi: " + valoriS465NonVuoti.join(" ≠ "));
+        CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "S476: ERRORE - valori diversi: " + valoriS476NonVuoti.join(" ≠ "));
       }
     }
 
