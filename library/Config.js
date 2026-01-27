@@ -10,7 +10,7 @@
  */
 CONFIG.VERSION = {
   NUMBER: "0.08",
-  IS_BETA: true,  // Cambia per produzione
+  IS_BETA: false,  // Produzione
   BETA_WARNING: "⚠️ VERSIONE BETA - Solo per test",
   RELEASE_DATE: "2025-11-26"
 };
