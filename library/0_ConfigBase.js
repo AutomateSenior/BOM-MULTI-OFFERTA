@@ -8,7 +8,7 @@ var CONFIG = {
   /**
    * Versione libreria
    */
-  LIB_VERSION: "1.4.0",
+  LIB_VERSION: "1.5.0",
 
   /**
    * File esterni
@@ -62,35 +62,45 @@ var CONFIG = {
       perc: 0.2,
       percLinea: 0.25,
       cost: [89, 59, 42],
-      vend: [90, 70, 56]
+      vend: [90, 70, 56],
+      vendBodyRental: [4000, 3000, 2500],  // Ricavi Body Rental: PM, Senior, Expert
+      costBodyRental: [3500, 2500, 2000]   // Costi Body Rental: PM, Senior, Expert
     },
     MES: {
       nome: "MES",
       perc: 0.25,
       percLinea: 0.35,
       cost: [84, 68, 45],
-      vend: [90, 75, 65]
+      vend: [90, 75, 65],
+      vendBodyRental: [4000, 3000, 2500],
+      costBodyRental: [3500, 2500, 2000]
     },
     BI: {
       nome: "BI",
       perc: 0.25,
       percLinea: 0.35,
       cost: [84, 68, 45],
-      vend: [90, 75, 65]
+      vend: [90, 75, 65],
+      vendBodyRental: [4000, 3000, 2500],
+      costBodyRental: [3500, 2500, 2000]
     },
     "SIM/AI": {
       nome: "SIM/AI",
       perc: 0.3,
       percLinea: 0.40,
       cost: [65, 61, 45],
-      vend: [86, 80, 65]
+      vend: [86, 80, 65],
+      vendBodyRental: [4000, 3000, 2500],
+      costBodyRental: [3500, 2500, 2000]
     },
     DEFAULT: {
       nome: "Commessa non esistente",
       perc: -1,
       percLinea: -1,
       cost: [100, 200, 300],
-      vend: [4, 5, 6]
+      vend: [4, 5, 6],
+      vendBodyRental: [4000, 3000, 2500],
+      costBodyRental: [3500, 2500, 2000]
     },
     getParams: function(tipo) {
       return this[tipo] || this.DEFAULT;
@@ -112,7 +122,14 @@ var CONFIG = {
     COST_1: "T4",
     COST_2: "T5",
     COST_3: "T6",
-    EXCLUDED_FROM_LABEL: ["T2", "T56", "S56", "S2", "S4", "S5", "S6", "T4", "T5", "T6", "O62"]
+    // Body Rental: Ricavi in Y, Costi in Z
+    VEND_BR_1: "Y4",  // Ricavo Body Rental PM
+    VEND_BR_2: "Y5",  // Ricavo Body Rental Senior
+    VEND_BR_3: "Y6",  // Ricavo Body Rental Expert
+    COST_BR_1: "Z4",  // Costo Body Rental PM
+    COST_BR_2: "Z5",  // Costo Body Rental Senior
+    COST_BR_3: "Z6",  // Costo Body Rental Expert
+    EXCLUDED_FROM_LABEL: ["T2", "T56", "S56", "S2", "S4", "S5", "S6", "T4", "T5", "T6", "Y4", "Y5", "Y6", "Z4", "Z5", "Z6", "O62"]
   },
 
   /**
@@ -131,19 +148,19 @@ var CONFIG = {
         HEADER: 506,       // Header L3 "Project Manager"
         DETTAGLIO_INIZIO: 507,
         DETTAGLIO_FINE: 509,
-        CELLE_COSTI: { RICAVO: "X4", COSTO: "Y4" }
+        CELLE_COSTI: { RICAVO: "Y4", COSTO: "Z4" }
       },
       SENIOR: {
         HEADER: 510,       // Header L3 "Senior Consultant"
         DETTAGLIO_INIZIO: 511,
         DETTAGLIO_FINE: 513,
-        CELLE_COSTI: { RICAVO: "X5", COSTO: "Y5" }
+        CELLE_COSTI: { RICAVO: "Y5", COSTO: "Z5" }
       },
       EXPERT: {
         HEADER: 514,       // Header L3 "Expert Consultant"
         DETTAGLIO_INIZIO: 515,
         DETTAGLIO_FINE: 517,
-        CELLE_COSTI: { RICAVO: "X6", COSTO: "Y6" }
+        CELLE_COSTI: { RICAVO: "Y6", COSTO: "Z6" }
       },
       COLONNA_MESI: "S"    // Colonna per input mesi (gialla)
     },
