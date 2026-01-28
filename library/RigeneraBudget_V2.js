@@ -275,58 +275,63 @@ function rigeneraBudgetDaOfferte() {
           CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - isErrore: " + upd.isErrore + ", valore: '" + upd.valore + "', coloreAttuale: " + coloreAttuale);
         }
 
-        // Gestione errori: usa NOTE invece di setValue per evitare conflitti con validazione dati
-        if (upd.isErrore) {
-          // Cancella contenuto e metti messaggio come NOTA
-          cell.clearContent();
-          cell.setNote(upd.valore);
-          cell.setBackground("#ea4335");  // Rosso per errori
-          cell.setFontColor("#ffffff");
-        } else {
-          // Rimuovi eventuali note precedenti (da errori corretti)
-          cell.clearNote();
-
-          // Scrivi valore o formula normalmente
-          if (upd.formula) {
-            cell.setFormula(upd.formula);
+        try {
+          // Gestione errori: usa NOTE invece di setValue per evitare conflitti con validazione dati
+          if (upd.isErrore) {
+            // Cancella contenuto e metti messaggio come NOTA
+            cell.clearContent();
+            cell.setNote(upd.valore);
+            cell.setBackground("#ea4335");  // Rosso per errori
+            cell.setFontColor("#ffffff");
           } else {
-            cell.setValue(upd.valore || "");
-            if (upd.riga === 119 && upd.colonnaM) {
-              CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Valore scritto: '" + upd.valore + "'");
-            }
-          }
+            // Rimuovi eventuali note precedenti (da errori corretti)
+            cell.clearNote();
 
-          // Formattazione speciale per colonna M
-          if (upd.colonnaM) {
-            // Se era verde o blu, mantieni colore originale
-            if (isColoreVerde(coloreAttuale) || isColoreBlu(coloreAttuale)) {
-              // Non cambiare colore
-              if (upd.riga === 119) {
-                CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Mantenuto colore verde/blu");
+            // Scrivi valore o formula normalmente
+            if (upd.formula) {
+              cell.setFormula(upd.formula);
+            } else {
+              cell.setValue(upd.valore || "");
+              if (upd.riga === 119 && upd.colonnaM) {
+                CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Valore scritto: '" + upd.valore + "'");
               }
-            } else if (isColoreRossoErrore(coloreAttuale)) {
-              // Era rosso-errore, ora corretto → grigio chiaro
-              cell.setBackground("#d9d9d9");  // Grigio chiaro
-              cell.setFontColor("#000000");   // Testo nero
-              if (upd.riga === 119) {
-                CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Cambiato da rosso a grigio");
+            }
+
+            // Formattazione speciale per colonna M
+            if (upd.colonnaM) {
+              // Se era verde o blu, mantieni colore originale
+              if (isColoreVerde(coloreAttuale) || isColoreBlu(coloreAttuale)) {
+                // Non cambiare colore
+                if (upd.riga === 119) {
+                  CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Mantenuto colore verde/blu");
+                }
+              } else if (isColoreRossoErrore(coloreAttuale)) {
+                // Era rosso-errore, ora corretto → grigio chiaro
+                cell.setBackground("#d9d9d9");  // Grigio chiaro
+                cell.setFontColor("#000000");   // Testo nero
+                if (upd.riga === 119) {
+                  CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Cambiato da rosso a grigio");
+                }
+              } else {
+                // Altri colori → grigio chiaro
+                cell.setBackground("#d9d9d9");  // Grigio chiaro
+                cell.setFontColor("#000000");   // Testo nero
+                if (upd.riga === 119) {
+                  CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Impostato grigio (altro colore)");
+                }
               }
             } else {
-              // Altri colori → grigio chiaro
-              cell.setBackground("#d9d9d9");  // Grigio chiaro
-              cell.setFontColor("#000000");   // Testo nero
-              if (upd.riga === 119) {
-                CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Impostato grigio (altro colore)");
+              // Altre colonne: colora in BLU solo se era VERDE
+              if (eraVerde) {
+                cell.setBackground("#4285f4");  // Blu solo se era verde
+                cell.setFontColor("#ffffff");
               }
+              // Se era già blu, mantieni il colore originale
             }
-          } else {
-            // Altre colonne: colora in BLU solo se era VERDE
-            if (eraVerde) {
-              cell.setBackground("#4285f4");  // Blu solo se era verde
-              cell.setFontColor("#ffffff");
-            }
-            // Se era già blu, mantieni il colore originale
           }
+        } catch (validationError) {
+          // Cella con validazione dati - salta senza bloccare
+          CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "Cella " + colLetter + upd.riga + " ha validazione dati, saltata: " + validationError.message);
         }
       }
     });
