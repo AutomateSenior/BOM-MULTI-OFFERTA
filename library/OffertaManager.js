@@ -479,7 +479,7 @@ function aggiornaDescrizioneOfferta(id, descrizione) {
 }
 /**
  * Identifica le celle verdi nel range configurato del foglio Budget
- * V08: Range 69-526 (include Body Rental 505-517, aggiornato dopo Sviluppo Software)
+ * V08: Range 69-527 (include Body Rental 506-518, aggiornato dopo inserimento riga 76)
  * Cerca solo nelle colonne specificate in CONFIG.OFFERTE.COLONNE_VERDI
  * @param {Sheet} sheet - Foglio da analizzare
  * @returns {Array<Object>} Array di {row, col}
@@ -565,8 +565,8 @@ function getCelleGiallePerMax(sheet) {
         var rowNum = CONFIG.OFFERTE.RANGE_SOMMA_INIZIO + row;
         var color = backgrounds[row][0].toLowerCase();
 
-        // Escludi S476 (ha gestione speciale con validazione dati, era S465)
-        if (rowNum === 476 && colonnaLettera === "S") {
+        // Escludi S477 (ha gestione speciale con validazione dati)
+        if (rowNum === 477 && colonnaLettera === "S") {
           continue;
         }
 
@@ -959,7 +959,7 @@ function azzeraOffertaSingola(offertaId) {
       throw new Error("Offerta " + offertaId + " non trovata");
     }
 
-    // Azzera le celle nelle colonne configurate (range configurato 69-526)
+    // Azzera le celle nelle colonne configurate (range configurato 69-527)
     var colonneTarget = CONFIG.OFFERTE.COLONNE_VERDI
       .concat(CONFIG.OFFERTE.COLONNE_GIALLE)
       .concat(CONFIG.OFFERTE.COLONNE_CONCATENAZIONE);
