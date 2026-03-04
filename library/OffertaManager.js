@@ -479,7 +479,7 @@ function aggiornaDescrizioneOfferta(id, descrizione) {
 }
 /**
  * Identifica le celle verdi nel range configurato del foglio Budget
- * V08: Range 69-527 (include Body Rental 506-518, aggiornato dopo inserimento riga 76)
+ * V08: Range 69-528 (include Body Rental 507-519, aggiornato dopo inserimento riga 77)
  * Cerca solo nelle colonne specificate in CONFIG.OFFERTE.COLONNE_VERDI
  * @param {Sheet} sheet - Foglio da analizzare
  * @returns {Array<Object>} Array di {row, col}
@@ -565,8 +565,8 @@ function getCelleGiallePerMax(sheet) {
         var rowNum = CONFIG.OFFERTE.RANGE_SOMMA_INIZIO + row;
         var color = backgrounds[row][0].toLowerCase();
 
-        // Escludi S477 (ha gestione speciale con validazione dati)
-        if (rowNum === 477 && colonnaLettera === "S") {
+        // Escludi S478 (ha gestione speciale con validazione dati)
+        if (rowNum === 478 && colonnaLettera === "S") {
           continue;
         }
 

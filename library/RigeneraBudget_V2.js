@@ -4,7 +4,7 @@
  * Logica:
  * - Per ogni riga con celle verdi riempite
  * - Controlla colonna M in tutte le offerte
- * - Se M uguale → processa L (concat), N (sum se >520, concat se <=520), S/T (sum)
+ * - Se M uguale → processa L (concat), N (sum se >521, concat se <=521), S/T (sum)
  * - Se M diverso → ERRORE in M, salta altre colonne
  * - Celle gialle U → MAX (invariato)
  * - Controllo consistenza S477
@@ -182,15 +182,15 @@ function rigeneraBudgetDaOfferte() {
       var chiaveM = riga + "_" + colM;
       var coloreM = coloriBudget[chiaveM];
 
-      // Log dettagliato per debug riga 119
-      if (riga === 119) {
-        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 - coloreM: " + coloreM + ", primoM: '" + primoM + "', verde: " + isColoreVerde(coloreM) + ", blu: " + isColoreBlu(coloreM) + ", rosso: " + isColoreRossoErrore(coloreM));
+      // Log dettagliato per debug riga 120
+      if (riga === 120) {
+        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M120 - coloreM: " + coloreM + ", primoM: '" + primoM + "', verde: " + isColoreVerde(coloreM) + ", blu: " + isColoreBlu(coloreM) + ", rosso: " + isColoreRossoErrore(coloreM));
       }
 
       // Processa sempre quando i valori M sono tutti uguali (non c'è errore)
       aggiornamenti.M.push({riga: riga, valore: primoM, isErrore: false, colonnaM: true});
-      if (riga === 119) {
-        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 - Aggiunto aggiornamento M con valore: '" + primoM + "'");
+      if (riga === 120) {
+        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M120 - Aggiunto aggiornamento M con valore: '" + primoM + "'");
       }
 
       // Colonna L - CONCATENAZIONE (solo se verde/blu)
@@ -207,11 +207,11 @@ function rigeneraBudgetDaOfferte() {
         aggiornamenti.L.push({riga: riga, valore: valoriL.join(", ")});
       }
 
-      // Colonna N - SUM se >520, CONCATENAZIONE altrimenti (solo se verde/blu)
+      // Colonna N - SUM se >521, CONCATENAZIONE altrimenti (solo se verde/blu)
       var chiaveN = riga + "_" + colN;
       var coloreN = coloriBudget[chiaveN];
       if (isColoreVerde(coloreN) || isColoreBlu(coloreN)) {
-        if (riga > 520) {
+        if (riga > 521) {
           // SUM - Formula
           var riferimenti = [];
           for (var i = 0; i < offerteAbilitate.length; i++) {
@@ -237,8 +237,8 @@ function rigeneraBudgetDaOfferte() {
         var chiave = riga + "_" + colNum;
         var colore = coloriBudget[chiave];
 
-        // Escludi S477 (ha gestione speciale con validazione dati)
-        if (riga === 477 && colLetter === "S") {
+        // Escludi S478 (ha gestione speciale con validazione dati)
+        if (riga === 478 && colLetter === "S") {
           return;
         }
 
@@ -270,9 +270,9 @@ function rigeneraBudgetDaOfferte() {
         var coloreAttuale = coloriBudget[chiave];
         var eraVerde = isColoreVerde(coloreAttuale);
 
-        // Log debug per riga 119
-        if (upd.riga === 119 && upd.colonnaM) {
-          CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - isErrore: " + upd.isErrore + ", valore: '" + upd.valore + "', coloreAttuale: " + coloreAttuale);
+        // Log debug per riga 120
+        if (upd.riga === 120 && upd.colonnaM) {
+          CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M120 SCRITTURA - isErrore: " + upd.isErrore + ", valore: '" + upd.valore + "', coloreAttuale: " + coloreAttuale);
         }
 
         try {
@@ -292,7 +292,7 @@ function rigeneraBudgetDaOfferte() {
               cell.setFormula(upd.formula);
             } else {
               cell.setValue(upd.valore || "");
-              if (upd.riga === 119 && upd.colonnaM) {
+              if (upd.riga === 120 && upd.colonnaM) {
                 CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Valore scritto: '" + upd.valore + "'");
               }
             }
@@ -302,21 +302,21 @@ function rigeneraBudgetDaOfferte() {
               // Se era verde o blu, mantieni colore originale
               if (isColoreVerde(coloreAttuale) || isColoreBlu(coloreAttuale)) {
                 // Non cambiare colore
-                if (upd.riga === 119) {
+                if (upd.riga === 120) {
                   CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Mantenuto colore verde/blu");
                 }
               } else if (isColoreRossoErrore(coloreAttuale)) {
                 // Era rosso-errore, ora corretto → grigio chiaro
                 cell.setBackground("#d9d9d9");  // Grigio chiaro
                 cell.setFontColor("#000000");   // Testo nero
-                if (upd.riga === 119) {
+                if (upd.riga === 120) {
                   CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Cambiato da rosso a grigio");
                 }
               } else {
                 // Altri colori → grigio chiaro
                 cell.setBackground("#d9d9d9");  // Grigio chiaro
                 cell.setFontColor("#000000");   // Testo nero
-                if (upd.riga === 119) {
+                if (upd.riga === 120) {
                   CONFIG.LOG.info("rigeneraBudgetDaOfferte", "DEBUG M119 SCRITTURA - Impostato grigio (altro colore)");
                 }
               }
@@ -412,44 +412,44 @@ function rigeneraBudgetDaOfferte() {
     });
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "=== FINE GESTIONE S64 e S65 ===");
 
-    // 6. CONTROLLO CONSISTENZA S477
-    var cellConsistenza = budget.getRange("S477");
-    var valoriS477 = [];
+    // 6. CONTROLLO CONSISTENZA S478
+    var cellConsistenza = budget.getRange("S478");
+    var valoriS478 = [];
     for (var i = 0; i < offerteAbilitate.length; i++) {
       var foglio = ss.getSheetByName(offerteAbilitate[i]);
-      valoriS477.push(foglio.getRange("S477").getValue());
+      valoriS478.push(foglio.getRange("S478").getValue());
     }
 
     // Filtra valori non vuoti
-    var valoriS477NonVuoti = [];
-    for (var i = 0; i < valoriS477.length; i++) {
-      if (valoriS477[i] && String(valoriS477[i]).trim() !== "") {
-        valoriS477NonVuoti.push(String(valoriS477[i]).trim());
+    var valoriS478NonVuoti = [];
+    for (var i = 0; i < valoriS478.length; i++) {
+      if (valoriS478[i] && String(valoriS478[i]).trim() !== "") {
+        valoriS478NonVuoti.push(String(valoriS478[i]).trim());
       }
     }
 
-    if (valoriS477NonVuoti.length === 0) {
+    if (valoriS478NonVuoti.length === 0) {
       // Nessuna offerta ha un valore → lascia vuoto in Budget SENZA formattazione
       cellConsistenza.clearContent();
       // Non applicare formattazione per evitare conflitti con validazione dati
-      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S477: nessun valore nelle offerte, lasciato vuoto");
+      CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S478: nessun valore nelle offerte, lasciato vuoto");
     } else {
       // Controlla se tutti i valori non vuoti sono uguali
-      var primoValore = valoriS477NonVuoti[0];
-      var tuttiUguali = valoriS477NonVuoti.every(function(v) { return v === primoValore; });
+      var primoValore = valoriS478NonVuoti[0];
+      var tuttiUguali = valoriS478NonVuoti.every(function(v) { return v === primoValore; });
 
       if (tuttiUguali) {
         // Tutti uguali → scrivi il valore
         cellConsistenza.setValue(primoValore);
         cellConsistenza.setBackground("#4285f4");
         cellConsistenza.setFontColor("#ffffff");
-        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S477: " + primoValore);
+        CONFIG.LOG.info("rigeneraBudgetDaOfferte", "S478: " + primoValore);
       } else {
         // Valori diversi → ERRORE
         cellConsistenza.setValue("Tipo di assistenza incoerente tra le diverse offerte");
         cellConsistenza.setBackground("#ea4335");
         cellConsistenza.setFontColor("#ffffff");
-        CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "S477: ERRORE - valori diversi: " + valoriS477NonVuoti.join(" ≠ "));
+        CONFIG.LOG.warn("rigeneraBudgetDaOfferte", "S478: ERRORE - valori diversi: " + valoriS478NonVuoti.join(" ≠ "));
       }
     }
 
