@@ -61,37 +61,33 @@ var CONFIG = {
       nome: "AUT",
       perc: 0.2,
       percLinea: 0.25,
-      cost: [89, 59, 42],
-      vend: [90, 70, 56],
-      vendBodyRental: [4000, 3000, 2500],  // Ricavi Body Rental: PM, Senior, Expert
-      costBodyRental: [3500, 2500, 2000]   // Costi Body Rental: PM, Senior, Expert
+      cost: [94, 58, 45],
+      vend: [95, 72, 60],
+      costBodyRental: [22, 22, 22]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     MES: {
       nome: "MES",
       perc: 0.25,
       percLinea: 0.35,
-      cost: [84, 68, 45],
-      vend: [90, 75, 65],
-      vendBodyRental: [4000, 3000, 2500],
-      costBodyRental: [3500, 2500, 2000]
+      cost: [83, 68, 45],
+      vend: [95, 77, 67],
+      costBodyRental: [22, 22, 22]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     BI: {
       nome: "BI",
       perc: 0.25,
       percLinea: 0.35,
-      cost: [84, 68, 45],
-      vend: [90, 75, 65],
-      vendBodyRental: [4000, 3000, 2500],
-      costBodyRental: [3500, 2500, 2000]
+      cost: [66, 55, 41],
+      vend: [83, 68, 55],
+      costBodyRental: [16, 16, 16]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     "SIM/AI": {
       nome: "SIM/AI",
       perc: 0.3,
       percLinea: 0.40,
-      cost: [65, 61, 45],
-      vend: [86, 80, 65],
-      vendBodyRental: [4000, 3000, 2500],
-      costBodyRental: [3500, 2500, 2000]
+      cost: [78, 56, 46],
+      vend: [95, 80, 67],
+      costBodyRental: [22, 22, 22]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     DEFAULT: {
       nome: "Commessa non esistente",
@@ -99,8 +95,7 @@ var CONFIG = {
       percLinea: -1,
       cost: [100, 200, 300],
       vend: [4, 5, 6],
-      vendBodyRental: [4000, 3000, 2500],
-      costBodyRental: [3500, 2500, 2000]
+      costBodyRental: [22, 22, 22]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     getParams: function(tipo) {
       return this[tipo] || this.DEFAULT;

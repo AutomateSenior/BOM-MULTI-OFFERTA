@@ -368,10 +368,7 @@ function cercaNelFileCommessa(spreadsheet) {
         vend1: params.vend[0],
         vend2: params.vend[1],
         vend3: params.vend[2],
-        // Body Rental
-        vendBR1: params.vendBodyRental[0],
-        vendBR2: params.vendBodyRental[1],
-        vendBR3: params.vendBodyRental[2],
+        // Costi di struttura Body Rental
         costBR1: params.costBodyRental[0],
         costBR2: params.costBodyRental[1],
         costBR3: params.costBodyRental[2]
@@ -393,10 +390,7 @@ function cercaNelFileCommessa(spreadsheet) {
         vend1: params.vend[0],
         vend2: params.vend[1],
         vend3: params.vend[2],
-        // Body Rental
-        vendBR1: params.vendBodyRental[0],
-        vendBR2: params.vendBodyRental[1],
-        vendBR3: params.vendBodyRental[2],
+        // Costi di struttura Body Rental
         costBR1: params.costBodyRental[0],
         costBR2: params.costBodyRental[1],
         costBR3: params.costBodyRental[2]
@@ -436,10 +430,7 @@ function aggiornaFoglioBudget(foglioBudget, tipo, valori) {
       {range: CONFIG.CELLS.COST_1, value: valori.cost1},
       {range: CONFIG.CELLS.COST_2, value: valori.cost2},
       {range: CONFIG.CELLS.COST_3, value: valori.cost3},
-      // Body Rental
-      {range: CONFIG.CELLS.VEND_BR_1, value: valori.vendBR1},
-      {range: CONFIG.CELLS.VEND_BR_2, value: valori.vendBR2},
-      {range: CONFIG.CELLS.VEND_BR_3, value: valori.vendBR3},
+      // Costi di struttura Body Rental
       {range: CONFIG.CELLS.COST_BR_1, value: valori.costBR1},
       {range: CONFIG.CELLS.COST_BR_2, value: valori.costBR2},
       {range: CONFIG.CELLS.COST_BR_3, value: valori.costBR3}
