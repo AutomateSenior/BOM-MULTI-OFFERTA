@@ -61,7 +61,7 @@ var CONFIG = {
       nome: "AUT",
       perc: 0.2,
       percLinea: 0.25,
-      cost: [94, 58, 45],
+      cost: [94, 58, 45.16],
       vend: [95, 72, 60],
       costBodyRental: [22, 22, 22]   // Costi di struttura (€/h): PM, Senior, Expert
     },
