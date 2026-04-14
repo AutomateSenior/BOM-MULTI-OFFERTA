@@ -421,3 +421,8 @@ function verificaFormuleELabelTutteLeOfferte() { return BOM8.verificaFormuleELab
 function ripristinaFormuleTutteLeOfferte() { return BOM8.ripristinaFormuleTutteLeOfferte(); }
 function ripristinaLabelTutteLeOfferte() { return BOM8.ripristinaLabelTutteLeOfferte(); }
 function ripristinaFormuleELabelTutteLeOfferte() { return BOM8.ripristinaFormuleELabelTutteLeOfferte(); }
+
+// Funzioni configurazione avanzata offerte
+function getConfigurazioneCompleta() { return BOM8.getConfigurazioneCompleta(); }
+function aggiornaNomeOfferta(id, nuovoNome) { return BOM8.aggiornaNomeOfferta(id, nuovoNome); }
+function rinominaFoglioOfferta(vecchioId, nuovoId) { return BOM8.rinominaFoglioOfferta(vecchioId, nuovoId); }
