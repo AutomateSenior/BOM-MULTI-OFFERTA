@@ -65,6 +65,13 @@ function rigeneraBudgetDaOfferte() {
     // ── 3. Pre-carica colori colonna L nel Budget (celle blu) ────────────────
     var coloriL = budget.getRange(RANGE_INIZIO, colL, numRighe, 1).getBackgrounds();
 
+    // ── 3b. Leggi S477 da tutte le offerte abilitate ─────────────────────────
+    var valoriS477 = [];
+    for (var i = 0; i < offerteAbilitate.length; i++) {
+      var v = ss.getSheetByName(offerteAbilitate[i]).getRange("S477").getValue();
+      valoriS477.push({ id: offerteAbilitate[i], valore: v });
+    }
+
     // ── 4. Ciclo su tutte le righe: calcola valori e individua errori ─────────
     var erroriBloccanti = [];
     var aggiornL = [];          // {riga, valore}
@@ -157,6 +164,26 @@ function rigeneraBudgetDaOfferte() {
       }
     }
 
+    // ── 4b. Controllo S477: "" o stesso valore in tutte le offerte ───────────
+    var s477NonVuoti = valoriS477.filter(function(x) {
+      return x.valore !== null && x.valore !== "" && x.valore !== undefined;
+    });
+    var s477Risultato = null; // valore da scrivere in Budget S477
+    if (s477NonVuoti.length > 0) {
+      var primoS477 = String(s477NonVuoti[0].valore).trim();
+      var s477Consistente = s477NonVuoti.every(function(x) {
+        return String(x.valore).trim() === primoS477;
+      });
+      if (!s477Consistente) {
+        var dettagliS477 = valoriS477.map(function(x) {
+          return x.id + ':"' + x.valore + '"';
+        });
+        erroriBloccanti.push("S477 — valori diversi tra le offerte: " + dettagliS477.join(", "));
+      } else {
+        s477Risultato = primoS477;
+      }
+    }
+
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Analisi completata — errori bloccanti: " + erroriBloccanti.length);
 
     // ── 5. Errori bloccanti → interrompi ─────────────────────────────────────
@@ -202,6 +229,10 @@ function rigeneraBudgetDaOfferte() {
         cell.setValue(upd.valore);
       }
     }
+
+    // ── 9b. Scrivi S477 nel Budget ────────────────────────────────────────────
+    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura S477: " + (s477Risultato !== null ? '"' + s477Risultato + '"' : '(vuoto)'));
+    budget.getRange("S477").setValue(s477Risultato !== null ? s477Risultato : "");
 
     // ── 10. Allineamento BOM (controlla commessa) ─────────────────────────────
     try {
