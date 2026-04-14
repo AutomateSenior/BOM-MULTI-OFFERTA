@@ -442,8 +442,11 @@ function impostaIndicatoreRigenerazione(mostra) {
       cella.setFontWeight("bold");
       CONFIG.LOG.info("impostaIndicatoreRigenerazione", "Indicatore impostato in " + CONFIG.CELLS.INDICATORE_RIGENERA);
     } else {
-      cella.clear();
-      CONFIG.LOG.info("impostaIndicatoreRigenerazione", "Indicatore cancellato da " + CONFIG.CELLS.INDICATORE_RIGENERA);
+      cella.setValue("Budget allineato alle offerte");
+      cella.setBackground(null);
+      cella.setFontColor(null);
+      cella.setFontWeight("normal");
+      CONFIG.LOG.info("impostaIndicatoreRigenerazione", "Indicatore allineato in " + CONFIG.CELLS.INDICATORE_RIGENERA);
     }
 
   } catch (error) {
