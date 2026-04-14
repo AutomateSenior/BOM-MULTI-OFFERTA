@@ -171,6 +171,68 @@
       display: block;
     }
 
+    .avanzata-toggle {
+      font-size: 11px;
+      color: #4285f4;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 4px 0;
+      margin: 6px 0 0 0;
+      font-weight: 500;
+      display: block;
+      width: auto;
+      text-align: left;
+    }
+
+    .avanzata-toggle:hover {
+      text-decoration: underline;
+      opacity: 1;
+    }
+
+    .avanzata-sezione {
+      display: none;
+      margin-top: 8px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      border: 1px solid #e8eaed;
+    }
+
+    .avanzata-row {
+      margin-bottom: 8px;
+    }
+
+    .input-prefix-group {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .input-prefix {
+      background: #e8eaed;
+      border: 1px solid #dadce0;
+      border-right: none;
+      padding: 8px;
+      font-size: 13px;
+      border-radius: 4px 0 0 4px;
+      color: #5f6368;
+      white-space: nowrap;
+    }
+
+    .input-prefix + input {
+      border-radius: 0 4px 4px 0;
+      margin: 0;
+    }
+
+    .btn-avanzata-salva {
+      background: #4285f4;
+      color: white;
+      font-size: 12px;
+      padding: 6px 12px;
+      margin-top: 8px;
+    }
+
     .messaggio {
       padding: 12px;
       margin: 10px 0;
@@ -394,6 +456,9 @@
         div.className = 'offerta ' + (off.abilitata ? 'abilitata' : 'disabilitata');
         div.setAttribute('data-id', off.id);
 
+        var idSafe = off.id.replace(/[^a-zA-Z0-9_]/g, '_');
+        var foglioSuffix = off.id.startsWith('Off_') ? off.id.substring(4) : off.id;
+
         div.innerHTML = `
           <div class="offerta-header">
             <div class="offerta-info">
@@ -402,16 +467,37 @@
             </div>
             <div class="checkbox-container">
               <input type="checkbox"
-                     id="cb-${off.id}"
+                     id="cb-${idSafe}"
                      ${off.abilitata ? 'checked' : ''}
                      onchange="toggleOfferta('${off.id}', this.checked)"
                      title="${off.abilitata ? 'Disabilita' : 'Abilita'} offerta">
             </div>
           </div>
           <label class="label">Descrizione:</label>
-          <textarea id="desc-${off.id}"
+          <textarea id="desc-${idSafe}"
                     onchange="aggiornaDescrizione('${off.id}', this.value)"
                     placeholder="Descrizione offerta...">${off.descrizione}</textarea>
+
+          <button class="avanzata-toggle" onclick="toggleAvanzata('${idSafe}', this)">
+            ▶ Configurazione avanzata
+          </button>
+          <div class="avanzata-sezione" id="avanzata-${idSafe}">
+            <div class="avanzata-row">
+              <label class="label">Nome visualizzato:</label>
+              <input type="text" id="nome-${idSafe}" value="${off.nome}" placeholder="Nome offerta">
+            </div>
+            <div class="avanzata-row">
+              <label class="label">Nome foglio (deve iniziare con "Off_"):</label>
+              <div class="input-prefix-group">
+                <span class="input-prefix">Off_</span>
+                <input type="text" id="foglio-${idSafe}" value="${foglioSuffix}" placeholder="01">
+              </div>
+            </div>
+            <button class="btn-avanzata-salva" onclick="salvaAvanzata('${off.id}', '${idSafe}')">
+              Salva modifiche avanzate
+            </button>
+          </div>
+
           <button class="btn-danger" onclick="rimuoviOfferta('${off.id}')">
             Rimuovi Offerta
           </button>
@@ -435,6 +521,59 @@
       google.script.run
         .withFailureHandler(onErrore)
         .aggiornaDescrizioneOfferta(id, descrizione);
+    }
+
+    function toggleAvanzata(idSafe, btn) {
+      var sezione = document.getElementById('avanzata-' + idSafe);
+      var aperta = sezione.style.display === 'block';
+      sezione.style.display = aperta ? 'none' : 'block';
+      btn.textContent = (aperta ? '▶' : '▼') + ' Configurazione avanzata';
+    }
+
+    function salvaAvanzata(vecchioId, idSafe) {
+      var nuovoNome = document.getElementById('nome-' + idSafe).value.trim();
+      var foglioSuffix = document.getElementById('foglio-' + idSafe).value.trim();
+      var nuovoFoglio = 'Off_' + foglioSuffix;
+
+      if (!nuovoNome) {
+        mostraMessaggio('Il nome non può essere vuoto.', 'error');
+        return;
+      }
+      if (!foglioSuffix) {
+        mostraMessaggio('Il nome foglio non può essere solo "Off_".', 'error');
+        return;
+      }
+
+      var nomeChanged = nuovoNome !== document.querySelector('[data-id="' + vecchioId + '"] .offerta-nome').textContent;
+      var foglioChanged = nuovoFoglio !== vecchioId;
+
+      if (!nomeChanged && !foglioChanged) {
+        mostraMessaggio('Nessuna modifica da salvare.', 'info');
+        return;
+      }
+
+      mostraLoading();
+
+      // Salva nome se cambiato
+      if (nomeChanged) {
+        google.script.run
+          .withFailureHandler(onErrore)
+          .aggiornaNomeOfferta(vecchioId, nuovoNome);
+      }
+
+      // Rinomina foglio se cambiato
+      if (foglioChanged) {
+        google.script.run
+          .withSuccessHandler(function() {
+            ricaricaOfferte();
+            mostraMessaggio('Modifiche avanzate salvate con successo!', 'success');
+          })
+          .withFailureHandler(onErrore)
+          .rinominaFoglioOfferta(vecchioId, nuovoFoglio);
+      } else {
+        ricaricaOfferte();
+        mostraMessaggio('Nome aggiornato con successo!', 'success');
+      }
     }
 
     function rimuoviOfferta(id) {

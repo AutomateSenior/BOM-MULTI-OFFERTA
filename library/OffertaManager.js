@@ -477,6 +477,102 @@ function aggiornaDescrizioneOfferta(id, descrizione) {
     CONFIG.LOG.error("aggiornaDescrizioneOfferta", "Errore", error);
   }
 }
+
+/**
+ * Aggiorna il nome visualizzato di un'offerta (colonna B del foglio Configurazione)
+ * @param {string} id - ID offerta
+ * @param {string} nuovoNome - Nuovo nome da visualizzare
+ */
+function aggiornaNomeOfferta(id, nuovoNome) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var configSheet = ss.getSheetByName(CONFIG.SHEETS.CONFIGURAZIONE_OFFERTE);
+
+    if (!configSheet) {
+      throw new Error("Sistema non inizializzato.");
+    }
+
+    nuovoNome = nuovoNome.trim();
+    if (!nuovoNome) {
+      throw new Error("Il nome non può essere vuoto.");
+    }
+
+    var data = configSheet.getRange(2, 1, configSheet.getLastRow() - 1, 1).getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (data[i][0] === id) {
+        configSheet.getRange(i + 2, 2).setValue(nuovoNome);
+        CONFIG.LOG.info("aggiornaNomeOfferta", id + " → nome: " + nuovoNome);
+        break;
+      }
+    }
+
+  } catch (error) {
+    CONFIG.LOG.error("aggiornaNomeOfferta", "Errore", error);
+    throw error;
+  }
+}
+
+/**
+ * Rinomina il foglio di un'offerta e aggiorna l'ID nella configurazione
+ * @param {string} vecchioId - ID corrente del foglio (es. "Off_01")
+ * @param {string} nuovoId - Nuovo nome foglio (deve iniziare con "Off_")
+ * @returns {string} Il nuovo ID effettivamente assegnato
+ */
+function rinominaFoglioOfferta(vecchioId, nuovoId) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var configSheet = ss.getSheetByName(CONFIG.SHEETS.CONFIGURAZIONE_OFFERTE);
+
+    if (!configSheet) {
+      throw new Error("Sistema non inizializzato.");
+    }
+
+    nuovoId = nuovoId.trim();
+
+    // Valida prefisso
+    if (!nuovoId.startsWith("Off_")) {
+      throw new Error("Il nome foglio deve iniziare con 'Off_'.");
+    }
+
+    // Valida che non sia vuoto dopo il prefisso
+    if (nuovoId === "Off_") {
+      throw new Error("Il nome foglio non può essere solo 'Off_'.");
+    }
+
+    // Nessun cambiamento
+    if (nuovoId === vecchioId) {
+      return vecchioId;
+    }
+
+    // Verifica che non esista già un foglio con quel nome
+    if (ss.getSheetByName(nuovoId)) {
+      throw new Error("Esiste già un foglio chiamato '" + nuovoId + "'.");
+    }
+
+    // Rinomina il foglio
+    var foglio = ss.getSheetByName(vecchioId);
+    if (!foglio) {
+      throw new Error("Foglio '" + vecchioId + "' non trovato.");
+    }
+    foglio.setName(nuovoId);
+
+    // Aggiorna la configurazione
+    var data = configSheet.getRange(2, 1, configSheet.getLastRow() - 1, 1).getValues();
+    for (var i = 0; i < data.length; i++) {
+      if (data[i][0] === vecchioId) {
+        configSheet.getRange(i + 2, 1).setValue(nuovoId);
+        CONFIG.LOG.info("rinominaFoglioOfferta", vecchioId + " → " + nuovoId);
+        break;
+      }
+    }
+
+    return nuovoId;
+
+  } catch (error) {
+    CONFIG.LOG.error("rinominaFoglioOfferta", "Errore", error);
+    throw error;
+  }
+}
 /**
  * Identifica le celle verdi nel range configurato del foglio Budget
  * V08: Range 69-528 (include Body Rental 507-519, aggiornato dopo inserimento riga 77)
