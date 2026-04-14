@@ -174,6 +174,11 @@ function rigeneraBudgetDaOfferte() {
     budget.getRange(RANGE_INIZIO, colP, numRighe, 1).setFormulas(formulaP);
     budget.getRange(RANGE_INIZIO, colQ, numRighe, 1).setFormulas(formulaQ_arr);
 
+    // ── 6b. S64: somma da tutte le offerte abilitate ──────────────────────────
+    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura S64...");
+    var rifS64 = offerteAbilitate.map(function(id) { return id + "!S64"; });
+    budget.getRange("S64").setFormula("=" + rifS64.join("+"));
+
     // ── 7. Scrivi L ──────────────────────────────────────────────────────────
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura colonna L (" + aggiornL.length + " celle)...");
     for (var i = 0; i < aggiornL.length; i++) {
