@@ -404,28 +404,22 @@
     // Variabile per callback conferma
     var confermaCallback = null;
 
-    // Verifica se è versione BETA
-    google.script.run
-      .withSuccessHandler(function(isBeta) {
-        if (isBeta) {
-          document.getElementById('beta-banner').style.display = 'block';
-        }
-      })
-      .isBetaVersion();
-
-    // Carica offerte all'avvio
-    console.log('OffertaConfigUI: Inizio caricamento offerte');
+    // Carica BETA status + offerte in un'unica chiamata server
+    console.log('OffertaConfigUI: Inizio caricamento');
     try {
       google.script.run
         .withSuccessHandler(function(result) {
-          console.log('OffertaConfigUI: Offerte ricevute', result);
-          onOfferteCaricate(result);
+          console.log('OffertaConfigUI: Dati ricevuti', result);
+          if (result.isBeta) {
+            document.getElementById('beta-banner').style.display = 'block';
+          }
+          onOfferteCaricate(result.offerte);
         })
         .withFailureHandler(function(error) {
           console.error('OffertaConfigUI: Errore caricamento', error);
           onErrore(error);
         })
-        .getConfigurazioneOfferte();
+        .getConfigurazioneCompleta();
     } catch (e) {
       console.error('OffertaConfigUI: Eccezione durante chiamata', e);
       document.getElementById('loading').style.display = 'none';
@@ -544,7 +538,7 @@
         return;
       }
 
-      var nomeChanged = nuovoNome !== document.querySelector('[data-id="' + vecchioId + '"] .offerta-nome').textContent;
+      var nomeChanged  = nuovoNome  !== document.querySelector('[data-id="' + vecchioId + '"] .offerta-nome').textContent.trim();
       var foglioChanged = nuovoFoglio !== vecchioId;
 
       if (!nomeChanged && !foglioChanged) {
@@ -552,27 +546,46 @@
         return;
       }
 
-      mostraLoading();
+      // Disabilita pulsante per evitare doppio click
+      var btnSalva = document.querySelector('[data-id="' + vecchioId + '"] .btn-avanzata-salva');
+      if (btnSalva) btnSalva.disabled = true;
 
-      // Salva nome se cambiato
-      if (nomeChanged) {
-        google.script.run
-          .withFailureHandler(onErrore)
-          .aggiornaNomeOfferta(vecchioId, nuovoNome);
-      }
-
-      // Rinomina foglio se cambiato
       if (foglioChanged) {
+        // Il rename cambia l'ID: ricarica completa (necessaria ma unica)
+        mostraLoading();
         google.script.run
-          .withSuccessHandler(function() {
+          .withSuccessHandler(function(nuovoId) {
+            // Se anche il nome è cambiato, salvalo subito dopo (fire-and-forget)
+            if (nomeChanged) {
+              google.script.run
+                .withFailureHandler(onErrore)
+                .aggiornaNomeOfferta(nuovoId, nuovoNome);
+            }
             ricaricaOfferte();
-            mostraMessaggio('Modifiche avanzate salvate con successo!', 'success');
+            mostraMessaggio('Modifiche salvate con successo!', 'success');
           })
-          .withFailureHandler(onErrore)
+          .withFailureHandler(function(error) {
+            if (btnSalva) btnSalva.disabled = false;
+            onErrore(error);
+          })
           .rinominaFoglioOfferta(vecchioId, nuovoFoglio);
       } else {
-        ricaricaOfferte();
-        mostraMessaggio('Nome aggiornato con successo!', 'success');
+        // Solo nome cambiato: aggiorna DOM localmente, nessun reload
+        google.script.run
+          .withSuccessHandler(function() {
+            // Aggiorna DOM in-place
+            var card = document.querySelector('[data-id="' + vecchioId + '"]');
+            if (card) {
+              card.querySelector('.offerta-nome').textContent = nuovoNome;
+            }
+            if (btnSalva) btnSalva.disabled = false;
+            mostraMessaggio('Nome aggiornato con successo!', 'success');
+          })
+          .withFailureHandler(function(error) {
+            if (btnSalva) btnSalva.disabled = false;
+            onErrore(error);
+          })
+          .aggiornaNomeOfferta(vecchioId, nuovoNome);
       }
     }
 
@@ -638,9 +651,11 @@
     function ricaricaOfferte() {
       mostraLoading();
       google.script.run
-        .withSuccessHandler(onOfferteCaricate)
+        .withSuccessHandler(function(result) {
+          onOfferteCaricate(result.offerte);
+        })
         .withFailureHandler(onErrore)
-        .getConfigurazioneOfferte();
+        .getConfigurazioneCompleta();
     }
 
     function mostraLoading() {

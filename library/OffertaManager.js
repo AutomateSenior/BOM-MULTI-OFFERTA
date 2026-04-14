@@ -190,21 +190,12 @@ function getConfigurazioneOfferte() {
       }
     }
 
-    // Se ci sono offerte mancanti, rimuovile dalla configurazione
+    // Se ci sono offerte mancanti, rimuovile silenziosamente dalla configurazione
     if (offerteMancanti.length > 0) {
       for (var j = 0; j < offerteMancanti.length; j++) {
         rimuoviOffertaDaConfigurazione(offerteMancanti[j], configSheet);
+        CONFIG.LOG.warn("getConfigurazioneOfferte", "Rimosso dalla configurazione: " + offerteMancanti[j]);
       }
-
-      // Mostra messaggio all'utente
-      var ui = SpreadsheetApp.getUi();
-      ui.alert(
-        "Fogli Offerta Mancanti",
-        "I seguenti fogli offerta non esistono più e sono stati rimossi dalla configurazione:\n\n" +
-        offerteMancanti.join(", ") +
-        "\n\nLa configurazione è stata aggiornata automaticamente.",
-        ui.ButtonSet.OK
-      );
     }
 
     // Ordina per ordine
@@ -216,6 +207,18 @@ function getConfigurazioneOfferte() {
     CONFIG.LOG.error("getConfigurazioneOfferte", "Errore", error);
     return [];
   }
+}
+
+/**
+ * Restituisce in un'unica chiamata server sia lo stato BETA che la lista offerte.
+ * Usata dalla sidebar per ridurre il numero di round-trip.
+ * @returns {{isBeta: boolean, offerte: Array}}
+ */
+function getConfigurazioneCompleta() {
+  return {
+    isBeta:  CONFIG.VERSION.IS_BETA,
+    offerte: getConfigurazioneOfferte()
+  };
 }
 
 /**
