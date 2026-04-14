@@ -61,7 +61,7 @@ var CONFIG = {
       nome: "AUT",
       perc: 0.2,
       percLinea: 0.25,
-      cost: [94, 58, 45.16],
+      cost: [93.71, 58.13, 45.24],
       vend: [95, 72, 60],
       costBodyRental: [22.42, 22.42, 22.42]   // Costi di struttura (€/h): PM, Senior, Expert
     },
@@ -69,7 +69,7 @@ var CONFIG = {
       nome: "MES",
       perc: 0.25,
       percLinea: 0.35,
-      cost: [83, 68, 45],
+      cost: [83.49, 67.98, 44.94],
       vend: [95, 77, 67],
       costBodyRental: [22.42, 22.42, 22.42]   // Costi di struttura (€/h): PM, Senior, Expert
     },
@@ -77,7 +77,7 @@ var CONFIG = {
       nome: "BI",
       perc: 0.25,
       percLinea: 0.35,
-      cost: [66, 55, 41],
+      cost: [66.23, 55.28, 40.75],
       vend: [83, 68, 55],
       costBodyRental: [16.40, 16.40, 16.40]   // Costi di struttura (€/h): PM, Senior, Expert
     },
@@ -85,7 +85,7 @@ var CONFIG = {
       nome: "SIM/AI",
       perc: 0.3,
       percLinea: 0.40,
-      cost: [78, 56, 46],
+      cost: [77.68, 55.66, 45.63],
       vend: [95, 80, 67],
       costBodyRental: [22.42, 22.42, 22.42]   // Costi di struttura (€/h): PM, Senior, Expert
     },
