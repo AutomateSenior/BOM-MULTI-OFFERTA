@@ -551,18 +551,34 @@
       if (btnSalva) btnSalva.disabled = true;
 
       if (foglioChanged) {
-        // Il rename cambia l'ID: ricarica completa (necessaria ma unica)
-        mostraLoading();
+        // Rinomina foglio: aggiorna DOM localmente dopo successo (no reload server)
         google.script.run
           .withSuccessHandler(function(nuovoId) {
-            // Se anche il nome è cambiato, salvalo subito dopo (fire-and-forget)
+            var card = document.querySelector('[data-id="' + vecchioId + '"]');
+            if (card) {
+              // Aggiorna data-id e il titolo ID visibile
+              card.setAttribute('data-id', nuovoId);
+              card.querySelector('.offerta-id').textContent = nuovoId;
+              // Aggiorna il nome se cambiato
+              if (nomeChanged) {
+                card.querySelector('.offerta-nome').textContent = nuovoNome;
+              }
+              // Aggiorna i valori nei campi avanzati
+              var newIdSafe = nuovoId.replace(/[^a-zA-Z0-9_]/g, '_');
+              var foglioInput = card.querySelector('[id^="foglio-"]');
+              if (foglioInput) {
+                foglioInput.value = nuovoId.startsWith('Off_') ? nuovoId.substring(4) : nuovoId;
+              }
+            }
+            if (btnSalva) btnSalva.disabled = false;
+            mostraMessaggio('Modifiche salvate con successo!', 'success');
+
+            // Salva anche il nome se cambiato (fire-and-forget, dopo il rename)
             if (nomeChanged) {
               google.script.run
                 .withFailureHandler(onErrore)
                 .aggiornaNomeOfferta(nuovoId, nuovoNome);
             }
-            ricaricaOfferte();
-            mostraMessaggio('Modifiche salvate con successo!', 'success');
           })
           .withFailureHandler(function(error) {
             if (btnSalva) btnSalva.disabled = false;
