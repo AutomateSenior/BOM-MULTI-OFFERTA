@@ -107,10 +107,10 @@ var CONFIG = {
    * Mese → percentuale applicata al valore progetto
    */
   MESI_PERC: {
-    1:  0.40,
-    3:  0.30,
-    6:  0.20,
-    12: 0.10
+    1:  0.95,
+    3:  0.90,
+    6:  0.85,
+    12: 0.80
   },
 
   /**
