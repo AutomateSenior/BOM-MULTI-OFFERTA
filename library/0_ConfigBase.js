@@ -103,6 +103,17 @@ var CONFIG = {
   },
 
   /**
+   * Percentuali per durata assistenza post-vendita
+   * Mese → percentuale applicata al valore progetto
+   */
+  MESI_PERC: {
+    1:  0.40,
+    3:  0.30,
+    6:  0.20,
+    12: 0.10
+  },
+
+  /**
    * Celle da gestire nel foglio Budget
    */
   CELLS: {
@@ -124,7 +135,12 @@ var CONFIG = {
     COST_BR_1: "Z4",  // Costo Body Rental PM
     COST_BR_2: "Z5",  // Costo Body Rental Senior
     COST_BR_3: "Z6",  // Costo Body Rental Expert
-    EXCLUDED_FROM_LABEL: ["T2", "T56", "S56", "S2", "S4", "S5", "S6", "T4", "T5", "T6", "Y4", "Y5", "Y6", "Z4", "Z5", "Z6", "O62"]
+    // Percentuali per durata assistenza (mesi 1, 3, 6, 12)
+    PERC_1MESE:  "AB3",
+    PERC_3MESI:  "AB4",
+    PERC_6MESI:  "AB5",
+    PERC_12MESI: "AB6",
+    EXCLUDED_FROM_LABEL: ["T2", "T56", "S56", "S2", "S4", "S5", "S6", "T4", "T5", "T6", "Y4", "Y5", "Y6", "Z4", "Z5", "Z6", "O62", "AB3", "AB4", "AB5", "AB6"]
   },
 
   /**

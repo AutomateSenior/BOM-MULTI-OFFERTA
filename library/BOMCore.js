@@ -433,7 +433,12 @@ function aggiornaFoglioBudget(foglioBudget, tipo, valori) {
       // Costi di struttura Body Rental
       {range: CONFIG.CELLS.COST_BR_1, value: valori.costBR1},
       {range: CONFIG.CELLS.COST_BR_2, value: valori.costBR2},
-      {range: CONFIG.CELLS.COST_BR_3, value: valori.costBR3}
+      {range: CONFIG.CELLS.COST_BR_3, value: valori.costBR3},
+      // Percentuali per durata assistenza (AB3:AB6)
+      {range: CONFIG.CELLS.PERC_1MESE,  value: CONFIG.MESI_PERC[1]},
+      {range: CONFIG.CELLS.PERC_3MESI,  value: CONFIG.MESI_PERC[3]},
+      {range: CONFIG.CELLS.PERC_6MESI,  value: CONFIG.MESI_PERC[6]},
+      {range: CONFIG.CELLS.PERC_12MESI, value: CONFIG.MESI_PERC[12]}
     ];
 
     // Aggiorna Budget
