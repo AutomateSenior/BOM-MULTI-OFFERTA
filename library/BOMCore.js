@@ -149,129 +149,90 @@ function controlla(spreadsheet, mostraAlert) {
   }
 }
 
-/**
- * Scrive il nome del file nella cella T56 del foglio Budget
- * @param {SpreadsheetApp.Spreadsheet} spreadsheet - Foglio di calcolo opzionale
- */
+/*
 function scriviNomeFile(spreadsheet) {
   try {
     spreadsheet = spreadsheet || SpreadsheetApp.getActiveSpreadsheet();
-
     var nomeFile = spreadsheet.getName();
     var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
-
     if (!foglioBudget) {
       throw new Error(CONFIG.ERRORS.format("FOGLIO_NON_TROVATO", {foglio: CONFIG.SHEETS.BUDGET}));
     }
-
-    // Scrive il nome del file nella cella configurata
     foglioBudget.getRange(CONFIG.CELLS.NOME_FILE).setValue(nomeFile);
     CONFIG.LOG.info("scriviNomeFile", "Nome file scritto in " + CONFIG.CELLS.NOME_FILE + ": " + nomeFile);
-
   } catch (error) {
     CONFIG.LOG.error("scriviNomeFile", "Errore nella scrittura del nome file", error);
     throw error;
   }
 }
 
-/**
- * Analizza il nome del file ed estrae il codice commessa, scrivendolo in S56
- * @param {SpreadsheetApp.Spreadsheet} spreadsheet - Foglio di calcolo
- */
 function analizzaEScriviCommessa(spreadsheet) {
   try {
     spreadsheet = spreadsheet || SpreadsheetApp.getActiveSpreadsheet();
-
     var nomeFile = spreadsheet.getName();
-    CONFIG.LOG.info("analizzaEScriviCommessa", "Analisi del nome file: " + nomeFile);
-
     var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
     if (!foglioBudget) {
       throw new Error(CONFIG.ERRORS.format("FOGLIO_NON_TROVATO", {foglio: CONFIG.SHEETS.BUDGET}));
     }
-
-    // Esegue l'analisi del nome file
     var risultatoAnalisi = analizzaNomeFile(nomeFile);
-    CONFIG.LOG.info("analizzaEScriviCommessa", "Risultato analisi: " + risultatoAnalisi);
-
-    // Scrive il risultato nella cella configurata
     foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(risultatoAnalisi);
-
-    // Verifica che il valore sia stato scritto correttamente
     var valoreVerifica = foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).getValue();
     if (valoreVerifica != risultatoAnalisi) {
       throw new Error("Errore nella scrittura: atteso '" + risultatoAnalisi + "', trovato '" + valoreVerifica + "'");
     }
-
-    CONFIG.LOG.info("analizzaEScriviCommessa", "Valore scritto in " + CONFIG.CELLS.CODICE_COMMESSA + " con successo");
-
   } catch (error) {
     CONFIG.LOG.error("analizzaEScriviCommessa", "Errore nell'analisi commessa", error);
     throw error;
   }
 }
 
-/**
- * Analizza il nome del file per estrarre il codice commessa
- * Funzione consolidata da Utility.js e Esecuzione.js
- * @param {string} nomeFile - Nome del file da analizzare
- * @returns {string} Codice commessa o messaggio di errore
- */
 function analizzaNomeFile(nomeFile) {
   try {
-    CONFIG.LOG.info("analizzaNomeFile", "Analisi nome file: " + nomeFile);
-
-    // Controllo se il nome file è vuoto o non definito
-    if (!nomeFile || nomeFile.trim() === "") {
-      CONFIG.LOG.warn("analizzaNomeFile", CONFIG.ERRORS.FILE_VUOTO);
-      return CONFIG.ERRORS.FILE_VUOTO;
-    }
-
-    // Verifica della presenza e del formato della revisione
+    if (!nomeFile || nomeFile.trim() === "") return CONFIG.ERRORS.FILE_VUOTO;
     const revisioneMatch = nomeFile.match(CONFIG.NAMING.REVISIONE_PATTERN);
-    if (!revisioneMatch) {
-      CONFIG.LOG.warn("analizzaNomeFile", CONFIG.ERRORS.REVISIONE_NON_VALIDA);
-      return CONFIG.ERRORS.REVISIONE_NON_VALIDA;
-    }
-    CONFIG.LOG.info("analizzaNomeFile", "Revisione trovata: #Rev " + revisioneMatch[1] + "." + revisioneMatch[2]);
-
-    // Pulizia del nome file
-    const nomeFilePulito = nomeFile
-      .trim()
-      .replace(/\s+/g, '_')
-      .replace(/[^\w\d\._\-#]/g, '');
-
-    CONFIG.LOG.info("analizzaNomeFile", "Nome file pulito: " + nomeFilePulito);
-
-    // Verifica la presenza del pattern *_BOM_
-    if (!nomeFilePulito.match(/\w+_BOM_/)) {
-      CONFIG.LOG.warn("analizzaNomeFile", CONFIG.ERRORS.FORMATO_NON_VALIDO + " - Pattern _BOM_ non trovato");
-      return CONFIG.ERRORS.FORMATO_NON_VALIDO;
-    }
-    CONFIG.LOG.info("analizzaNomeFile", "Pattern _BOM_ trovato");
-
-    // Cerca il codice commessa usando il pattern da CONFIG
+    if (!revisioneMatch) return CONFIG.ERRORS.REVISIONE_NON_VALIDA;
+    const nomeFilePulito = nomeFile.trim().replace(/\s+/g, '_').replace(/[^\w\d\._\-#]/g, '');
+    if (!nomeFilePulito.match(/\w+_BOM_/)) return CONFIG.ERRORS.FORMATO_NON_VALIDO;
     const commessaMatch = nomeFilePulito.match(CONFIG.NAMING.COMMESSA_PATTERN);
-
-    if (!commessaMatch) {
-      CONFIG.LOG.warn("analizzaNomeFile", CONFIG.ERRORS.COMMESSA_NON_TROVATA);
-      return CONFIG.ERRORS.COMMESSA_NON_TROVATA;
-    }
-
-    // Controlla se il codice commessa inizia con 2
+    if (!commessaMatch) return CONFIG.ERRORS.COMMESSA_NON_TROVATA;
     const codiceCommessaCompleto = commessaMatch[0];
-    if (!codiceCommessaCompleto.startsWith('2')) {
-      CONFIG.LOG.warn("analizzaNomeFile", CONFIG.ERRORS.COMMESSA_NON_TROVATA + " - Non inizia con 2");
-      return CONFIG.ERRORS.COMMESSA_NON_TROVATA;
-    }
-
-    CONFIG.LOG.info("analizzaNomeFile", "Codice commessa trovato: " + codiceCommessaCompleto);
+    if (!codiceCommessaCompleto.startsWith('2')) return CONFIG.ERRORS.COMMESSA_NON_TROVATA;
     return codiceCommessaCompleto;
-
   } catch (error) {
-    var messaggioErrore = "Errore durante l'analisi del nome file: " + error.message;
-    CONFIG.LOG.error("analizzaNomeFile", messaggioErrore, error);
-    return messaggioErrore;
+    return "Errore durante l'analisi del nome file: " + error.message;
+  }
+}
+*/
+
+/**
+ * Controlla all'apertura se il nome del file contiene il codice commessa di L56.
+ * Non esegue nulla se il nome file contiene "MASTER".
+ * In caso di disallineamento mostra solo un avviso, non blocca.
+ */
+function controllaNomeFileVsCommessa(spreadsheet) {
+  try {
+    spreadsheet = spreadsheet || SpreadsheetApp.getActiveSpreadsheet();
+    var nomeFile = spreadsheet.getName();
+
+    if (nomeFile.toUpperCase().indexOf("MASTER") > -1) return;
+
+    var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
+    if (!foglioBudget) return;
+
+    var codiceL56 = String(foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).getValue()).trim();
+    if (!codiceL56) return;
+
+    if (nomeFile.indexOf(codiceL56) === -1) {
+      SpreadsheetApp.getUi().alert(
+        "Nome file non allineato",
+        "Il nome del file non corrisponde al codice commessa inserito in L56.\n\n" +
+        "Nome file:  " + nomeFile + "\n" +
+        "Codice L56: " + codiceL56,
+        SpreadsheetApp.getUi().ButtonSet.OK
+      );
+    }
+  } catch (e) {
+    CONFIG.LOG.warn("controllaNomeFileVsCommessa", "Errore (non bloccante): " + e.toString());
   }
 }
 

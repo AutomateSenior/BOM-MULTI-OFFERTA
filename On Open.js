@@ -96,6 +96,11 @@ function onOpen() {
     // Aggiungi il menu all'interfaccia utente
     menuPrincipale.addToUi();
 
+    // Controlla allineamento nome file vs codice commessa in L56
+    try {
+      BOM8.controllaNomeFileVsCommessa(SpreadsheetApp.getActiveSpreadsheet());
+    } catch (e) {}
+
   } catch (error) {
     // Se onOpen fallisce completamente, almeno mostra un menu minimo
     try {
