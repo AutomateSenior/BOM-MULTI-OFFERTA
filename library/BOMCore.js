@@ -220,7 +220,14 @@ function controllaNomeFileVsCommessa(spreadsheet) {
     if (!foglioBudget) return;
 
     var codiceL56 = String(foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).getValue()).trim();
-    if (!codiceL56) return;
+    if (!codiceL56) {
+      SpreadsheetApp.getUi().alert(
+        "Codice commessa mancante",
+        "La cella L56 è vuota: inserire il codice commessa.",
+        SpreadsheetApp.getUi().ButtonSet.OK
+      );
+      return;
+    }
 
     if (nomeFile.indexOf(codiceL56) === -1) {
       SpreadsheetApp.getUi().alert(
