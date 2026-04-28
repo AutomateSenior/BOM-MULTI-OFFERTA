@@ -5,6 +5,9 @@
 
 // CONFIG già definito in Config.js
 
+// Cache dati ultima commessa caricata (valida nell'esecuzione corrente)
+var _cacheCommessa = null;
+
 /**
  * InserimentoBOM - Controlla inserimenti celle colorate
  * Chiamata dal trigger OnEdit
@@ -314,8 +317,10 @@ function cercaNelFileCommessa(spreadsheet) {
           cliente: colonnaD[i][0] || "",
           soluzione: colonnaH[i][0] || "",
           societa: colonnaAF[i][0] || "",
-          linea: colonnaAH[i][0] || ""
+          linea: colonnaAH[i][0] || "",
+          riga: rigaTrovata
         };
+        _cacheCommessa = datiCommessa;
         CONFIG.LOG.info("cercaNelFileCommessa", "Commessa trovata alla riga " + rigaTrovata);
         break;
       }
@@ -448,6 +453,207 @@ function aggiornaFoglioBudget(foglioBudget, tipo, valori) {
   } catch (error) {
     CONFIG.LOG.error("aggiornaFoglioBudget", "Errore nell'aggiornamento", error);
     throw error;
+  }
+}
+
+/**
+ * Gestisce il disallineamento tra nome file e codice commessa in L56.
+ * Chiamata dopo controlla() quando S56 = "Commessa OK".
+ * @param {SpreadsheetApp.Spreadsheet} spreadsheet
+ * @param {string} oldValue - Vecchio valore di L56 (da e.oldValue)
+ */
+function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
+  try {
+    var ui = SpreadsheetApp.getUi();
+    var nomeFile = spreadsheet.getName();
+
+    // Skip se MASTER
+    if (nomeFile.toUpperCase().indexOf("MASTER") > -1) {
+      ui.alert(
+        "Attenzione — File Master",
+        "Stai facendo modifiche nel Master.\nLe modifiche non vengono propagate ai file BOM.",
+        ui.ButtonSet.OK
+      );
+      return;
+    }
+
+    var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
+    if (!foglioBudget) return;
+
+    var nuovaCommessa = String(foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).getValue()).trim();
+    if (!nuovaCommessa) return;
+
+    // Nome file già allineato: niente da fare
+    if (nomeFile.indexOf(nuovaCommessa) > -1) return;
+
+    // Mostra disallineamento e chiedi azione
+    var risposta = ui.alert(
+      "Nome file non allineato",
+      "Il nome del file non corrisponde al codice commessa.\n\n" +
+      "Nome file:       " + nomeFile + "\n" +
+      "Codice commessa: " + nuovaCommessa + "\n\n" +
+      "Sì      → Crea nuovo file\n" +
+      "No      → Rinomina il file attuale\n" +
+      "Annulla → Non fare nulla",
+      ui.ButtonSet.YES_NO_CANCEL
+    );
+
+    if (risposta === ui.Button.CANCEL || risposta === ui.Button.CLOSE) return;
+
+    // Usa dati dalla cache (caricata da cercaNelFileCommessa nella stessa esecuzione)
+    var datiCommessa = _cacheCommessa;
+    if (!datiCommessa || datiCommessa.codice !== nuovaCommessa) {
+      ui.alert("Errore", "Dati commessa non disponibili. Riprovare.", ui.ButtonSet.OK);
+      return;
+    }
+
+    // Reverse-map società: nome esteso → codice A-E
+    var societaCodice = getSocietaCodice(datiCommessa.societa);
+    if (!societaCodice) {
+      ui.alert("Errore", "Società non riconosciuta: \"" + datiCommessa.societa + '"', ui.ButtonSet.OK);
+      return;
+    }
+
+    // Cerca revisione massima su Drive e calcola la nuova
+    var maxRev = cercaMassimaRevisioneBOM(nuovaCommessa);
+    var nuovaRev = ('00' + (maxRev + 1)).slice(-2) + '.08';
+
+    // Genera nuovo nome file con la funzione esistente
+    var nuovoNome = CONFIG.NAMING.generaNomeFile(
+      societaCodice,
+      nuovaCommessa,
+      datiCommessa.pm,
+      datiCommessa.cliente,
+      datiCommessa.descrizione,
+      nuovaRev
+    );
+
+    if (risposta === ui.Button.NO) {
+      // RINOMINA
+      rinominaFileBOM(spreadsheet, nuovoNome);
+      ui.alert("Completato", "File rinominato:\n" + nuovoNome, ui.ButtonSet.OK);
+
+    } else if (risposta === ui.Button.YES) {
+      // NUOVO FILE
+      creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, datiCommessa.riga, oldValue);
+      ui.alert("Completato", "Nuovo file creato:\n" + nuovoNome, ui.ButtonSet.OK);
+    }
+
+  } catch (e) {
+    CONFIG.LOG.error("gestisciDisallineamentoNomeFile", "Errore", e);
+    SpreadsheetApp.getUi().alert("Errore: " + e.toString());
+  }
+}
+
+/**
+ * Cerca su Drive la revisione principale massima (#Rev XX.YY → XX) per una commessa BOM.
+ * @param {string} commessa
+ * @returns {number} Massimo trovato, 0 se nessun file esistente
+ */
+function cercaMassimaRevisioneBOM(commessa) {
+  try {
+    var queryParts = ["A_", "B_", "C_", "D_", "E_"].map(function(p) {
+      return 'title contains "' + p + 'BOM_' + commessa + '"';
+    });
+    var query = "trashed = false and (" + queryParts.join(" or ") + ")";
+    var maxRev = 0;
+    var pageToken;
+
+    do {
+      var files = Drive.Files.list({
+        q: query,
+        maxResults: 100,
+        corpora: 'allDrives',
+        supportsAllDrives: true,
+        includeItemsFromAllDrives: true,
+        pageToken: pageToken
+      });
+
+      if (files.items && files.items.length > 0) {
+        for (var i = 0; i < files.items.length; i++) {
+          var title = files.items[i].title;
+          if (title.indexOf(commessa) > -1) {
+            var revMatch = title.match(/#Rev\s+(\d+)\.\d+/i);
+            if (revMatch) {
+              var rev = parseInt(revMatch[1], 10);
+              if (rev > maxRev) maxRev = rev;
+            }
+          }
+        }
+      }
+      pageToken = files.nextPageToken;
+    } while (pageToken);
+
+    CONFIG.LOG.info("cercaMassimaRevisioneBOM", commessa + " → maxRev=" + maxRev);
+    return maxRev;
+
+  } catch (e) {
+    CONFIG.LOG.error("cercaMassimaRevisioneBOM", "Errore ricerca Drive", e);
+    return 0;
+  }
+}
+
+/**
+ * Restituisce il codice società (A-E) dal nome esteso.
+ * @param {string} nomeEsteso - Es. "Automate", "Bridger"
+ * @returns {string|null}
+ */
+function getSocietaCodice(nomeEsteso) {
+  var societa = CONFIG.NAMING.SOCIETA;
+  for (var codice in societa) {
+    if (societa[codice] === nomeEsteso) return codice;
+  }
+  return null;
+}
+
+/**
+ * Rinomina il file corrente su Drive.
+ * @param {SpreadsheetApp.Spreadsheet} spreadsheet
+ * @param {string} nuovoNome
+ */
+function rinominaFileBOM(spreadsheet, nuovoNome) {
+  var file = DriveApp.getFileById(spreadsheet.getId());
+  file.setName(nuovoNome);
+  CONFIG.LOG.info("rinominaFileBOM", "Rinominato: " + nuovoNome);
+}
+
+/**
+ * Crea un nuovo file BOM (copia del corrente), ripristina il vecchio codice
+ * nel file originale e aggiorna l'hyperlink in col Q del file commesse.
+ * @param {SpreadsheetApp.Spreadsheet} spreadsheet - File originale
+ * @param {string} nuovoNome
+ * @param {string} nuovaCommessa
+ * @param {number} rigaCommessa - Riga della commessa nel foglio commesse
+ * @param {string} oldValue - Vecchio codice da ripristinare in L56
+ */
+function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaCommessa, oldValue) {
+  // 1. Copia nella cartella destinazione
+  var cartella = DriveApp.getFolderById(CONFIG.FOLDERS.NUOVI_BOM);
+  var nuovoFile = DriveApp.getFileById(spreadsheet.getId()).makeCopy(nuovoNome, cartella);
+  CONFIG.LOG.info("creaEConfiguraNuovoFileBOM", "Creato: " + nuovoNome + " ID=" + nuovoFile.getId());
+
+  // 2. Ripristina vecchio codice nel file originale e riallinea tutto
+  var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
+  foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(oldValue || "");
+  if (oldValue) {
+    try {
+      controlla(spreadsheet, false);
+    } catch (e) {
+      CONFIG.LOG.warn("creaEConfiguraNuovoFileBOM", "Riallineamento fallito: " + e.toString());
+    }
+  }
+
+  // 3. Aggiorna hyperlink col Q nel file commesse per la nuova commessa
+  try {
+    var url = "https://docs.google.com/spreadsheets/d/" + nuovoFile.getId();
+    var foglioCommesse = SpreadsheetApp.openById(CONFIG.FILES.COMMESSE_ID)
+                          .getSheetByName(CONFIG.FILES.COMMESSE_SHEET_NAME);
+    if (foglioCommesse && rigaCommessa > 0) {
+      foglioCommesse.getRange(rigaCommessa, 17).setFormula('=HYPERLINK("' + url + '","BOM")');
+      CONFIG.LOG.info("creaEConfiguraNuovoFileBOM", "Hyperlink aggiornato riga " + rigaCommessa);
+    }
+  } catch (e) {
+    CONFIG.LOG.warn("creaEConfiguraNuovoFileBOM", "Aggiornamento hyperlink fallito: " + e.toString());
   }
 }
 

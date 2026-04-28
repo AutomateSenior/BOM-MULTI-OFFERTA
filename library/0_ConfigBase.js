@@ -103,6 +103,13 @@ var CONFIG = {
   },
 
   /**
+   * Cartelle Drive
+   */
+  FOLDERS: {
+    NUOVI_BOM: "10Wzo-ba7iGrm8syyO0kDMs40ophZPNYZ"
+  },
+
+  /**
    * Percentuali per durata assistenza post-vendita
    * Mese → percentuale applicata al valore progetto
    */

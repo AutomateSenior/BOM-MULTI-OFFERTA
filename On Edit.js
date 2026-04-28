@@ -15,7 +15,17 @@ function Inserimento(e){
         Logger.log("Inserimento: Rilevata modifica L56, avvio allineamento BOM");
         BOM8.CONFIG.LOG.info("Inserimento", "Modificata cella L56, avvio allineamento BOM");
 
-        BOM8.controlla(SpreadsheetApp.getActiveSpreadsheet(), false);  // Funzione locale in BOMCore.js
+        var ss = SpreadsheetApp.getActiveSpreadsheet();
+        BOM8.controlla(ss, false);  // Funzione locale in BOMCore.js
+
+        try {
+          var s56 = ss.getSheetByName("Budget").getRange("S56").getValue();
+          if (s56 === "Commessa OK") {
+            BOM8.gestisciDisallineamentoNomeFile(ss, e.oldValue || "");
+          }
+        } catch (errDisal) {
+          Logger.log("Inserimento: Errore gestione disallineamento - " + errDisal.toString());
+        }
 
         Logger.log("Inserimento: Allineamento BOM completato");
         return; // Esci dopo aver gestito L56
