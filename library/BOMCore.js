@@ -699,7 +699,7 @@ function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaC
     var foglioCommesse = SpreadsheetApp.openById(CONFIG.FILES.COMMESSE_ID)
                           .getSheetByName(CONFIG.FILES.COMMESSE_SHEET_NAME);
     if (foglioCommesse && rigaCommessa > 0) {
-      foglioCommesse.getRange(rigaCommessa, 17).setFormula('=HYPERLINK("' + url + '","BOM")');
+      foglioCommesse.getRange(rigaCommessa, 17).setFormula('=HYPERLINK("' + url + '";"BOM")');
       CONFIG.LOG.info("creaEConfiguraNuovoFileBOM", "Hyperlink aggiornato riga " + rigaCommessa);
     }
   } catch (e) {
