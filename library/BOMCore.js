@@ -660,6 +660,25 @@ function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaC
 }
 
 /**
+ * Propaga il valore di L56 (codice commessa) a tutti i fogli Off_XX e al foglio Master.
+ * Va chiamata dopo controlla() quando S56 = "Commessa OK".
+ * @param {SpreadsheetApp.Spreadsheet} spreadsheet
+ * @param {string} valore - Codice commessa da propagare
+ */
+function propagaL56(spreadsheet, valore) {
+  var sheets = spreadsheet.getSheets();
+  var count = 0;
+  for (var i = 0; i < sheets.length; i++) {
+    var name = sheets[i].getName();
+    if (/^Off_/.test(name) || name === CONFIG.SHEETS.MASTER) {
+      sheets[i].getRange("L56").setValue(valore);
+      count++;
+    }
+  }
+  CONFIG.LOG.info("propagaL56", "Propagato '" + valore + "' a " + count + " fogli");
+}
+
+/**
  * Punto di ingresso headless per script schedulati/esterni.
  * Apre una nuova commessa a partire dal Master BOM:
  *   1. Scrive codiceCommessa in L56 del Master
@@ -742,6 +761,7 @@ function apriNuovaCommessa(masterSpreadsheetId, codiceCommessa) {
       nuovoBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(codiceCommessa);
       _cacheCommessa = null;
       controlla(nuovoSs, false);
+      propagaL56(nuovoSs, codiceCommessa);
       CONFIG.LOG.info("apriNuovaCommessa", "Nuovo file allineato con commessa " + codiceCommessa);
     }
   } catch (e) {
