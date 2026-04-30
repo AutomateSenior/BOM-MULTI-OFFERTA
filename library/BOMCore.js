@@ -504,6 +504,7 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
       );
 
       var nuovoFileM = creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNomeM, nuovaCommessaM, datiM.riga, "");
+      propagaL56(spreadsheet, ""); // Pulisce L56 anche in Off_XX e foglio Master
 
       try {
         var nuovoSsM = SpreadsheetApp.openById(nuovoFileM.getId());
