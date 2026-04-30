@@ -467,13 +467,60 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
     var ui = SpreadsheetApp.getUi();
     var nomeFile = spreadsheet.getName();
 
-    // Skip se MASTER
+    // File Master: crea nuovo file BOM e aprilo
     if (nomeFile.toUpperCase().indexOf("MASTER") > -1) {
-      ui.alert(
-        "Attenzione — File Master",
-        "Stai facendo modifiche nel Master.\nLe modifiche non vengono propagate ai file BOM.",
-        ui.ButtonSet.OK
+      var foglioBudgetM = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
+      if (!foglioBudgetM) return;
+      var nuovaCommessaM = String(foglioBudgetM.getRange(CONFIG.CELLS.CODICE_COMMESSA).getValue()).trim();
+      if (!nuovaCommessaM) return;
+
+      var datiM = _cacheCommessa;
+      if (!datiM || datiM.codice !== nuovaCommessaM) {
+        ui.alert("Errore", "Dati commessa non disponibili. Riprovare.", ui.ButtonSet.OK);
+        return;
+      }
+
+      var rispostaMaster = ui.alert(
+        "Crea nuovo file BOM",
+        "Vuoi creare un nuovo file BOM per la commessa " + nuovaCommessaM + "?",
+        ui.ButtonSet.YES_NO
       );
+
+      if (rispostaMaster !== ui.Button.YES) {
+        foglioBudgetM.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue("");
+        return;
+      }
+
+      var societaCodiceM = getSocietaCodice(datiM.societa);
+      if (!societaCodiceM) {
+        ui.alert("Errore", "Società non riconosciuta: \"" + datiM.societa + '"', ui.ButtonSet.OK);
+        return;
+      }
+
+      var maxRevM = cercaMassimaRevisioneBOM(nuovaCommessaM);
+      var nuovaRevM = ('00' + (maxRevM + 1)).slice(-2) + '.08';
+      var nuovoNomeM = CONFIG.NAMING.generaNomeFile(
+        societaCodiceM, nuovaCommessaM, datiM.pm, datiM.cliente, datiM.descrizione, nuovaRevM
+      );
+
+      var nuovoFileM = creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNomeM, nuovaCommessaM, datiM.riga, "");
+
+      try {
+        var nuovoSsM = SpreadsheetApp.openById(nuovoFileM.getId());
+        var nuovoBudgetM = nuovoSsM.getSheetByName(CONFIG.SHEETS.BUDGET);
+        if (nuovoBudgetM) {
+          nuovoBudgetM.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(nuovaCommessaM);
+          _cacheCommessa = null;
+          controlla(nuovoSsM, false);
+          propagaL56(nuovoSsM, nuovaCommessaM);
+        }
+      } catch (eCfg) {
+        CONFIG.LOG.warn("gestisciDisallineamentoNomeFile", "Configurazione nuovo file fallita: " + eCfg.toString());
+      }
+
+      var urlM = "https://docs.google.com/spreadsheets/d/" + nuovoFileM.getId();
+      apriUrlInNuovaScheda(urlM, ui);
+      ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNomeM, ui.ButtonSet.OK);
       return;
     }
 
@@ -535,8 +582,10 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
 
     } else if (risposta === ui.Button.YES) {
       // NUOVO FILE
-      creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, datiCommessa.riga, oldValue);
-      ui.alert("Completato", "Nuovo file creato:\n" + nuovoNome, ui.ButtonSet.OK);
+      var nuovoFile = creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, datiCommessa.riga, oldValue);
+      var urlNuovo = "https://docs.google.com/spreadsheets/d/" + nuovoFile.getId();
+      apriUrlInNuovaScheda(urlNuovo, ui);
+      ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNome, ui.ButtonSet.OK);
     }
 
   } catch (e) {
@@ -657,6 +706,18 @@ function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaC
   }
 
   return nuovoFile;
+}
+
+/**
+ * Apre un URL in una nuova scheda del browser tramite un dialog HTML invisibile.
+ * @param {string} url
+ * @param {GoogleAppsScript.Base.Ui} ui
+ */
+function apriUrlInNuovaScheda(url, ui) {
+  var html = HtmlService.createHtmlOutput(
+    '<script>window.open("' + url + '", "_blank"); google.script.host.close();</script>'
+  ).setWidth(1).setHeight(1);
+  ui.showModelessDialog(html, 'Apertura...');
 }
 
 /**
