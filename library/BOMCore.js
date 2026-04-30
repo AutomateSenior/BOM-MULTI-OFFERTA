@@ -624,7 +624,7 @@ function rinominaFileBOM(spreadsheet, nuovoNome) {
  * @param {string} nuovoNome
  * @param {string} nuovaCommessa
  * @param {number} rigaCommessa - Riga della commessa nel foglio commesse
- * @param {string} oldValue - Vecchio codice da ripristinare in L56
+ * @param {string} oldValue - Vecchio codice da ripristinare in L56 (vuoto = cancella)
  */
 function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaCommessa, oldValue) {
   // 1. Copia nella cartella destinazione
@@ -632,7 +632,7 @@ function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaC
   var nuovoFile = DriveApp.getFileById(spreadsheet.getId()).makeCopy(nuovoNome, cartella);
   CONFIG.LOG.info("creaEConfiguraNuovoFileBOM", "Creato: " + nuovoNome + " ID=" + nuovoFile.getId());
 
-  // 2. Ripristina vecchio codice nel file originale e riallinea tutto
+  // 2. Ripristina/cancella L56 nel file originale
   var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
   foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(oldValue || "");
   if (oldValue) {
@@ -655,5 +655,103 @@ function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaC
   } catch (e) {
     CONFIG.LOG.warn("creaEConfiguraNuovoFileBOM", "Aggiornamento hyperlink fallito: " + e.toString());
   }
+
+  return nuovoFile;
+}
+
+/**
+ * Punto di ingresso headless per script schedulati/esterni.
+ * Apre una nuova commessa a partire dal Master BOM:
+ *   1. Scrive codiceCommessa in L56 del Master
+ *   2. Valida la commessa (controlla)
+ *   3. Crea una copia del Master nella cartella NUOVI_BOM con nome corretto
+ *   4. Configura L56 nel nuovo file e lo allinea
+ *   5. Svuota L56 nel Master
+ *   6. Aggiorna hyperlink col Q nel file commesse
+ *
+ * Nessuna chiamata UI — compatibile con trigger temporali e script esterni.
+ *
+ * @param {string} masterSpreadsheetId - ID del file Master BOM
+ * @param {string} codiceCommessa - Codice commessa da aprire (es. "12345.1")
+ * @returns {{ nome: string, id: string, url: string }} Dati del nuovo file creato
+ * @throws {Error} Se la commessa non esiste o il file non è un Master
+ */
+function apriNuovaCommessa(masterSpreadsheetId, codiceCommessa) {
+  CONFIG.LOG.info("apriNuovaCommessa", "Inizio: commessa=" + codiceCommessa + " master=" + masterSpreadsheetId);
+
+  // 1. Apri il Master
+  var master = SpreadsheetApp.openById(masterSpreadsheetId);
+  var nomeFileMaster = master.getName();
+
+  if (nomeFileMaster.toUpperCase().indexOf("MASTER") === -1) {
+    throw new Error("Il file '" + nomeFileMaster + "' non è un Master BOM (manca 'MASTER' nel nome)");
+  }
+
+  // 2. Scrivi il codice commessa in L56 e valida
+  var foglioBudget = master.getSheetByName(CONFIG.SHEETS.BUDGET);
+  if (!foglioBudget) {
+    throw new Error(CONFIG.ERRORS.format("FOGLIO_NON_TROVATO", { foglio: CONFIG.SHEETS.BUDGET }));
+  }
+
+  foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(codiceCommessa);
+  _cacheCommessa = null; // Azzera cache prima di controlla
+  controlla(master, false);
+
+  // 3. Verifica che la commessa sia stata riconosciuta
+  var s56 = foglioBudget.getRange("S56").getValue();
+  if (s56 !== "Commessa OK") {
+    foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue("");
+    throw new Error("Commessa non valida (S56='" + s56 + "'). L56 ripristinata vuota.");
+  }
+
+  // 4. Leggi dati dalla cache popolata da controlla()
+  var datiCommessa = _cacheCommessa;
+  if (!datiCommessa || datiCommessa.codice !== String(codiceCommessa).trim()) {
+    foglioBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue("");
+    throw new Error("Cache commessa non disponibile dopo controlla()");
+  }
+
+  // 5. Genera nome file
+  var societaCodice = getSocietaCodice(datiCommessa.societa);
+  if (!societaCodice) {
+    throw new Error("Società non riconosciuta: \"" + datiCommessa.societa + '"');
+  }
+
+  var maxRev = cercaMassimaRevisioneBOM(codiceCommessa);
+  var nuovaRev = ('00' + (maxRev + 1)).slice(-2) + '.08';
+
+  var nuovoNome = CONFIG.NAMING.generaNomeFile(
+    societaCodice,
+    codiceCommessa,
+    datiCommessa.pm,
+    datiCommessa.cliente,
+    datiCommessa.descrizione,
+    nuovaRev
+  );
+
+  CONFIG.LOG.info("apriNuovaCommessa", "Nome generato: " + nuovoNome + " (rev " + nuovaRev + ")");
+
+  // 6. Crea copia, svuota L56 nel Master, aggiorna hyperlink
+  // oldValue="" → creaEConfiguraNuovoFileBOM cancella L56 nel Master senza riallineare
+  var nuovoFile = creaEConfiguraNuovoFileBOM(master, nuovoNome, codiceCommessa, datiCommessa.riga, "");
+
+  // 7. Configura il nuovo file: scrivi L56 e allinea
+  try {
+    var nuovoSs = SpreadsheetApp.openById(nuovoFile.getId());
+    var nuovoBudget = nuovoSs.getSheetByName(CONFIG.SHEETS.BUDGET);
+    if (nuovoBudget) {
+      nuovoBudget.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue(codiceCommessa);
+      _cacheCommessa = null;
+      controlla(nuovoSs, false);
+      CONFIG.LOG.info("apriNuovaCommessa", "Nuovo file allineato con commessa " + codiceCommessa);
+    }
+  } catch (e) {
+    CONFIG.LOG.warn("apriNuovaCommessa", "Allineamento nuovo file fallito: " + e.toString());
+  }
+
+  var url = "https://docs.google.com/spreadsheets/d/" + nuovoFile.getId();
+  CONFIG.LOG.info("apriNuovaCommessa", "Completato: " + nuovoNome);
+
+  return { nome: nuovoNome, id: nuovoFile.getId(), url: url };
 }
 
