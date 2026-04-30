@@ -667,7 +667,9 @@ function creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, rigaC
  *   3. Crea una copia del Master nella cartella NUOVI_BOM con nome corretto
  *   4. Configura L56 nel nuovo file e lo allinea
  *   5. Svuota L56 nel Master
- *   6. Aggiorna hyperlink col Q nel file commesse
+ *
+ * L'hyperlink nel file commesse NON viene scritto qui: la funzione restituisce
+ * l'URL al chiamante che provvede a scriverlo nel proprio contesto.
  *
  * Nessuna chiamata UI — compatibile con trigger temporali e script esterni.
  *
@@ -731,9 +733,9 @@ function apriNuovaCommessa(masterSpreadsheetId, codiceCommessa) {
 
   CONFIG.LOG.info("apriNuovaCommessa", "Nome generato: " + nuovoNome + " (rev " + nuovaRev + ")");
 
-  // 6. Crea copia, svuota L56 nel Master, aggiorna hyperlink
-  // oldValue="" → creaEConfiguraNuovoFileBOM cancella L56 nel Master senza riallineare
-  var nuovoFile = creaEConfiguraNuovoFileBOM(master, nuovoNome, codiceCommessa, datiCommessa.riga, "");
+  // 6. Crea copia e svuota L56 nel Master (rigaCommessa=0 → salta hyperlink interno)
+  // L'hyperlink lo scrive lo script chiamante usando l'url restituito
+  var nuovoFile = creaEConfiguraNuovoFileBOM(master, nuovoNome, codiceCommessa, 0, "");
 
   // 7. Configura il nuovo file: scrivi L56 e allinea
   try {
