@@ -36,39 +36,7 @@ function onOpen() {
     .addSeparator()
     .addItem('Rigenera Budget', 'rigeneraBudgetDaOfferte');
 
-  // Aggiungi submenu azzeramento dinamico
-  var menuAzzera = ui.createMenu('Azzera Offerte');
-  menuAzzera.addItem('Azzera tutte le offerte', 'azzeraTutteLeOfferte');
-
-  // Ottieni lista offerte per menu dinamico
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var configSheet = ss.getSheetByName("Configurazione");
-    if (configSheet && configSheet.getLastRow() >= 2) {
-      var lastRow = configSheet.getLastRow();
-      var data = configSheet.getRange(2, 1, lastRow - 1, 2).getValues();
-      if (data.length > 0) {
-        menuAzzera.addSeparator();
-        for (var i = 0; i < data.length; i++) {
-          if (data[i][0]) {
-            var offertaId = data[i][0];
-            var offertaNome = data[i][1] || offertaId;
-            // Crea funzione dinamica per ogni offerta
-            menuAzzera.addItem('Azzera ' + offertaNome, 'azzeraOfferta_' + offertaId);
-          }
-        }
-      }
-    }
-  } catch (e) {
-    // Sistema non inizializzato o libreria non ancora caricata, ignora
-    try {
-      if (BOM8.CONFIG && BOM8.CONFIG.LOG) {
-        BOM8.CONFIG.LOG.warn("onOpen", "Errore creazione menu dinamico: " + e.toString());
-      }
-    } catch (logError) {}
-  }
-
-    menuGestioneOfferte.addSubMenu(menuAzzera);
+    menuGestioneOfferte.addItem('Azzera tutte le offerte', 'azzeraTutteLeOfferte');
 
     menuPrincipale.addSubMenu(menuGestioneOfferte);
 
