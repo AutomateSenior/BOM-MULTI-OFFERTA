@@ -42,12 +42,13 @@ function rigeneraBudgetDaOfferte() {
 
     // ── 2. Pre-carica dati offerte (colonne L…Q) ─────────────────────────────
     // L=12, M=13, N=14, O=15, P=16, Q=17
-    var colL = letterToColumn("L");
-    var colM = letterToColumn("M");
-    var colN = letterToColumn("N");
-    var colO = letterToColumn("O");
-    var colP = letterToColumn("P");
-    var colQ = letterToColumn("Q");
+    var colL  = letterToColumn("L");
+    var colM  = letterToColumn("M");
+    var colN  = letterToColumn("N");
+    var colO  = letterToColumn("O");
+    var colP  = letterToColumn("P");
+    var colQ  = letterToColumn("Q");
+    var colAB = letterToColumn("AB");
     var numCols = colQ - colL + 1; // 6
 
     // Indici relativi all'array (0-based, partendo da colL)
@@ -80,6 +81,7 @@ function rigeneraBudgetDaOfferte() {
     var formulaO = [];          // array di array per setFormulas
     var formulaP = [];
     var formulaQ_arr = [];
+    var formulaAB = [];
 
     for (var r = 0; r < numRighe; r++) {
       var riga = RANGE_INIZIO + r;
@@ -95,6 +97,14 @@ function rigeneraBudgetDaOfferte() {
       formulaO.push(["=" + rifO.join("+")]);
       formulaP.push(["=" + rifP.join("+")]);
       formulaQ_arr.push(["=" + rifQ.join("+")]);
+
+      // ── AB: formula SUM ───────────────────────────────────────────────────
+      var rifAB = [];
+      for (var i = 0; i < offerteAbilitate.length; i++) {
+        rifAB.push(offerteAbilitate[i] + "!AB" + riga);
+      }
+      formulaAB.push(["=" + rifAB.join("+")]);
+
 
       // ── Identifica offerte con Q ≠ 0 per questa riga ──────────────────────
       var indiciConQNonZero = [];
@@ -195,11 +205,12 @@ function rigeneraBudgetDaOfferte() {
       return;
     }
 
-    // ── 6. Scrivi O, P, Q in batch ───────────────────────────────────────────
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura formule O, P, Q...");
-    budget.getRange(RANGE_INIZIO, colO, numRighe, 1).setFormulas(formulaO);
-    budget.getRange(RANGE_INIZIO, colP, numRighe, 1).setFormulas(formulaP);
-    budget.getRange(RANGE_INIZIO, colQ, numRighe, 1).setFormulas(formulaQ_arr);
+    // ── 6. Scrivi O, P, Q, AB in batch ──────────────────────────────────────
+    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura formule O, P, Q, AB...");
+    budget.getRange(RANGE_INIZIO, colO,  numRighe, 1).setFormulas(formulaO);
+    budget.getRange(RANGE_INIZIO, colP,  numRighe, 1).setFormulas(formulaP);
+    budget.getRange(RANGE_INIZIO, colQ,  numRighe, 1).setFormulas(formulaQ_arr);
+    budget.getRange(RANGE_INIZIO, colAB, numRighe, 1).setFormulas(formulaAB);
 
     // ── 6b. S64: somma da tutte le offerte abilitate ──────────────────────────
     CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura S64...");
