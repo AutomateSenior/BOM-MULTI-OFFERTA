@@ -43,7 +43,8 @@ function onOpen() {
     // SEZIONE 2: Operazioni BOM
     menuPrincipale
       .addSeparator()
-      .addItem('Allinea BOM alla commessa', 'controlla');
+      .addItem('Allinea BOM alla commessa', 'controlla')
+      .addItem('Installa attivatore', 'installaAttivatore');
 
     // SEZIONE 3: Verifica e Ripristino (solo per file master)
     var nomeFile = SpreadsheetApp.getActiveSpreadsheet().getName().toLowerCase();
