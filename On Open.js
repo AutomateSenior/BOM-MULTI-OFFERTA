@@ -30,21 +30,20 @@ function onOpen() {
     var menuPrincipale = ui.createMenu(titoloMenu);
 
   // SEZIONE 1: Gestione Offerte (prima voce)
-  var menuGestioneOfferte = ui.createMenu('Gestione Offerte')
+  var menuGestioneOfferte = ui.createMenu('📋 Gestione Offerte')
     .addItem('⚡ Gestione rapida', 'mostraGestioneRapidaOfferte')
-    .addItem('Configurazione avanzata...', 'mostraConfigurazioneOfferte')
+    .addItem('⚙️ Configurazione avanzata...', 'mostraConfigurazioneOfferte')
     .addSeparator()
-    .addItem('Rigenera Budget', 'rigeneraBudgetDaOfferte');
-
-    menuGestioneOfferte.addItem('Azzera tutte le offerte', 'azzeraTutteLeOfferte');
+    .addItem('🔄 Rigenera Budget', 'rigeneraBudgetDaOfferte')
+    .addItem('🗑️ Azzera tutte le offerte', 'azzeraTutteLeOfferte');
 
     menuPrincipale.addSubMenu(menuGestioneOfferte);
 
     // SEZIONE 2: Operazioni BOM
     menuPrincipale
       .addSeparator()
-      .addItem('Allinea BOM alla commessa', 'controlla')
-      .addItem('Installa attivatore', 'installaAttivatore');
+      .addItem('🎯 Allinea BOM alla commessa', 'controlla')
+      .addItem('🔧 Installa attivatore', 'installaAttivatore');
 
     // SEZIONE 3: Verifica e Ripristino (solo per file master)
     var nomeFile = SpreadsheetApp.getActiveSpreadsheet().getName().toLowerCase();
@@ -52,14 +51,14 @@ function onOpen() {
     if (nomeFile.indexOf("master") > -1) {
       menuPrincipale
         .addSeparator()
-        .addSubMenu(ui.createMenu('Verifica Integrità')
-          .addItem('Verifica formule', 'verificaFormuleTutteLeOfferte')
-          .addItem('Verifica label', 'verificaLabelTutteLeOfferte')
-          .addItem('Verifica formule e label', 'verificaFormuleELabelTutteLeOfferte'))
-        .addSubMenu(ui.createMenu('Ripristina')
-          .addItem('Ripristina formule', 'ripristinaFormuleTutteLeOfferte')
-          .addItem('Ripristina label', 'ripristinaLabelTutteLeOfferte')
-          .addItem('Ripristina formule e label', 'ripristinaFormuleELabelTutteLeOfferte'));
+        .addSubMenu(ui.createMenu('🔍 Verifica Integrità')
+          .addItem('🧮 Verifica formule', 'verificaFormuleTutteLeOfferte')
+          .addItem('🏷️ Verifica label', 'verificaLabelTutteLeOfferte')
+          .addItem('🔍 Verifica formule e label', 'verificaFormuleELabelTutteLeOfferte'))
+        .addSubMenu(ui.createMenu('↩️ Ripristina')
+          .addItem('🧮 Ripristina formule', 'ripristinaFormuleTutteLeOfferte')
+          .addItem('🏷️ Ripristina label', 'ripristinaLabelTutteLeOfferte')
+          .addItem('↩️ Ripristina formule e label', 'ripristinaFormuleELabelTutteLeOfferte'));
     }
 
     // Aggiungi il menu all'interfaccia utente
