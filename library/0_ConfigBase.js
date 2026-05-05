@@ -78,7 +78,7 @@ var CONFIG = {
       perc: 0.25,
       percLinea: 0.35,
       cost: [66.23, 55.28, 40.75],
-      vend: [83, 68, 55],
+      vend: [95, 75, 60],
       costBodyRental: [16.40, 16.40, 16.40]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     "SIM/AI": {
