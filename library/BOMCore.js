@@ -522,7 +522,7 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
       var urlM = "https://docs.google.com/spreadsheets/d/" + nuovoFileM.getId();
       apriUrlInNuovaScheda(urlM, ui);
       ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNomeM, ui.ButtonSet.OK);
-      return;
+      return { nuovoFileId: nuovoFileM.getId() };
     }
 
     var foglioBudget = spreadsheet.getSheetByName(CONFIG.SHEETS.BUDGET);
@@ -587,6 +587,7 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
       var urlNuovo = "https://docs.google.com/spreadsheets/d/" + nuovoFile.getId();
       apriUrlInNuovaScheda(urlNuovo, ui);
       ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNome, ui.ButtonSet.OK);
+      return { nuovoFileId: nuovoFile.getId() };
     }
 
   } catch (e) {

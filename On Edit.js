@@ -38,7 +38,10 @@ function Inserimento(e){
             var s56off = budgetSheet.getRange("S56").getValue();
             if (s56off === "Commessa OK") {
               BOM8.propagaL56(ss, String(nuovoValore).trim());
-              BOM8.gestisciDisallineamentoNomeFile(ss, oldBudgetL56);
+              var risOff = BOM8.gestisciDisallineamentoNomeFile(ss, oldBudgetL56);
+              if (risOff && risOff.nuovoFileId) {
+                _installaTriggersInFile(risOff.nuovoFileId);
+              }
             }
           } catch (errOff) {
             Logger.log("Inserimento: Errore gestione Off_XX L56 - " + errOff.toString());
@@ -58,7 +61,10 @@ function Inserimento(e){
           var s56 = ss.getSheetByName("Budget").getRange("S56").getValue();
           if (s56 === "Commessa OK") {
             BOM8.propagaL56(ss, String(ss.getSheetByName("Budget").getRange("L56").getValue()).trim());
-            BOM8.gestisciDisallineamentoNomeFile(ss, e.oldValue || "");
+            var risBudget = BOM8.gestisciDisallineamentoNomeFile(ss, e.oldValue || "");
+            if (risBudget && risBudget.nuovoFileId) {
+              _installaTriggersInFile(risBudget.nuovoFileId);
+            }
           }
         } catch (errDisal) {
           Logger.log("Inserimento: Errore gestione disallineamento - " + errDisal.toString());
@@ -78,6 +84,19 @@ function Inserimento(e){
     BOM8.InserimentoBOM(e);  // Funzione locale in BOMCore.js
   } catch (error) {
     BOM8.CONFIG.LOG.error("Inserimento", "Errore InserimentoBOM", error);
+  }
+}
+
+function _installaTriggersInFile(fileId) {
+  try {
+    var nuovoSs = SpreadsheetApp.openById(fileId);
+    ScriptApp.newTrigger('Inserimento')
+      .forSpreadsheet(nuovoSs)
+      .onEdit()
+      .create();
+    Logger.log("_installaTriggersInFile: Trigger Inserimento installato per " + fileId);
+  } catch (e) {
+    Logger.log("_installaTriggersInFile: Impossibile installare trigger - " + e.toString());
   }
 }
 
