@@ -64,6 +64,29 @@ function onOpen() {
     // Aggiungi il menu all'interfaccia utente
     menuPrincipale.addToUi();
 
+    // Segnala se il trigger OnEdit (Inserimento) non è installato per questo file
+    try {
+      var ssCheck = SpreadsheetApp.getActiveSpreadsheet();
+      var userTriggers = ScriptApp.getUserTriggers(ssCheck);
+      var onEditPresente = false;
+      for (var ti = 0; ti < userTriggers.length; ti++) {
+        if (userTriggers[ti].getEventType() === ScriptApp.EventType.ON_EDIT) {
+          onEditPresente = true;
+          break;
+        }
+      }
+      if (!onEditPresente) {
+        ui.alert(
+          "Trigger mancante",
+          "Il trigger OnEdit non è installato per questo file.\n\n" +
+          "Vai su Automate → Installa attivatore per attivarlo.",
+          ui.ButtonSet.OK
+        );
+      }
+    } catch (eTrigger) {
+      Logger.log("onOpen: impossibile verificare trigger - " + eTrigger.toString());
+    }
+
     // Controlla allineamento nome file vs codice commessa in L56
     try {
       BOM8.controllaNomeFileVsCommessa(SpreadsheetApp.getActiveSpreadsheet());
