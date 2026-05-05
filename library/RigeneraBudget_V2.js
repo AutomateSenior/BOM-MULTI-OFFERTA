@@ -256,6 +256,10 @@ function rigeneraBudgetDaOfferte() {
     // ── 11. Cancella indicatore "rigenerazione necessaria" ────────────────────
     impostaIndicatoreRigenerazione(false);
 
+    // ── 11b. Aggiorna etichetta sintesi e colori tab ──────────────────────────
+    aggiornaEtichettaSintesi(budget, offerteAbilitate);
+    aggiornaColoriTabOfferte(ss, offerte);
+
     // ── 12. Torna al foglio Budget ────────────────────────────────────────────
     ss.setActiveSheet(budget);
 
