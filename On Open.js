@@ -64,7 +64,8 @@ function onOpen() {
     // Aggiungi il menu all'interfaccia utente
     menuPrincipale.addToUi();
 
-    // Segnala se il trigger OnEdit (Inserimento) non è installato per questo file
+    // Installa trigger OnEdit per l'utente corrente se mancante
+    // I trigger installabili sono per-utente: ogni utente che apre il file deve avere il proprio
     try {
       var ssCheck = SpreadsheetApp.getActiveSpreadsheet();
       var userTriggers = ScriptApp.getUserTriggers(ssCheck);
@@ -76,15 +77,24 @@ function onOpen() {
         }
       }
       if (!onEditPresente) {
+        ScriptApp.newTrigger('Inserimento')
+          .forSpreadsheet(ssCheck)
+          .onEdit()
+          .create();
+        Logger.log("onOpen: Trigger Inserimento installato per l'utente corrente");
+      }
+    } catch (eTrigger) {
+      // Fallback: se l'installazione automatica fallisce (primo accesso non ancora autorizzato)
+      // avvisa l'utente di installarlo manualmente
+      try {
         ui.alert(
           "Trigger mancante",
-          "Il trigger OnEdit non è installato per questo file.\n\n" +
+          "Il trigger OnEdit non è stato installato automaticamente.\n\n" +
           "Vai su Automate → Installa attivatore per attivarlo.",
           ui.ButtonSet.OK
         );
-      }
-    } catch (eTrigger) {
-      Logger.log("onOpen: impossibile verificare trigger - " + eTrigger.toString());
+      } catch (e) {}
+      Logger.log("onOpen: impossibile installare trigger automaticamente - " + eTrigger.toString());
     }
 
     // Controlla allineamento nome file vs codice commessa in L56
