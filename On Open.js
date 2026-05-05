@@ -64,6 +64,28 @@ function onOpen() {
     // Aggiungi il menu all'interfaccia utente
     menuPrincipale.addToUi();
 
+    // Auto-installa trigger OnEdit se non presente (es. file appena creato da copia del Master)
+    try {
+      var projectTriggers = ScriptApp.getProjectTriggers();
+      var inserimentoPresente = false;
+      for (var ti = 0; ti < projectTriggers.length; ti++) {
+        if (projectTriggers[ti].getEventType() === ScriptApp.EventType.ON_EDIT &&
+            projectTriggers[ti].getHandlerFunction() === 'Inserimento') {
+          inserimentoPresente = true;
+          break;
+        }
+      }
+      if (!inserimentoPresente) {
+        ScriptApp.newTrigger('Inserimento')
+          .forSpreadsheet(SpreadsheetApp.getActive())
+          .onEdit()
+          .create();
+        Logger.log("onOpen: Trigger Inserimento installato automaticamente");
+      }
+    } catch (eTrigger) {
+      Logger.log("onOpen: Impossibile installare trigger - " + eTrigger.toString());
+    }
+
     // Controlla allineamento nome file vs codice commessa in L56
     try {
       BOM8.controllaNomeFileVsCommessa(SpreadsheetApp.getActiveSpreadsheet());
