@@ -332,7 +332,12 @@ function cercaNelFileCommessa(spreadsheet) {
       CONFIG.LOG.info("cercaNelFileCommessa", "Commessa OK: " + JSON.stringify(datiCommessa));
 
       // Calcola valori celle in base alla linea
-      var params = CONFIG.COMMESSA_TYPES.getParams(datiCommessa.linea);
+      // BI con cliente Automate → trattato come "BI Interno" con tariffe interne
+      var tipoEffettivo = datiCommessa.linea;
+      if (tipoEffettivo === "BI" && datiCommessa.cliente === "Automate") {
+        tipoEffettivo = "BI Interno";
+      }
+      var params = CONFIG.COMMESSA_TYPES.getParams(tipoEffettivo);
       var valori = {
         perc: params.perc,
         cost1: params.cost[0],
@@ -348,7 +353,7 @@ function cercaNelFileCommessa(spreadsheet) {
       };
 
       // Aggiorna foglio Budget con i dati della commessa
-      aggiornaFoglioBudget(foglioBudget, datiCommessa.linea, valori);
+      aggiornaFoglioBudget(foglioBudget, tipoEffettivo, valori);
     } else {
       foglioBudget.getRange("S56").setValue("Commessa inesistente");
       CONFIG.LOG.warn("cercaNelFileCommessa", "Commessa '" + valoreDaCercare + "' non trovata");

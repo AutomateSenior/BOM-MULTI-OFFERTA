@@ -81,6 +81,14 @@ var CONFIG = {
       vend: [95, 75, 60],
       costBodyRental: [16.40, 16.40, 16.40]   // Costi di struttura (€/h): PM, Senior, Expert
     },
+    "BI Interno": {
+      nome: "BI Interno",
+      perc: 0.25,
+      percLinea: 0.35,
+      cost: [66.23, 55.28, 40.75],
+      vend: [83.49, 67.98, 44.94],
+      costBodyRental: [16.40, 16.40, 16.40]   // Costi di struttura (€/h): PM, Senior, Expert
+    },
     "SIM/AI": {
       nome: "SIM/AI",
       perc: 0.3,
