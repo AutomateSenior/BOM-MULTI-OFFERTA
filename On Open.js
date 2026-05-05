@@ -65,28 +65,22 @@ function onOpen() {
     // Aggiungi il menu all'interfaccia utente
     menuPrincipale.addToUi();
 
-    // Installa trigger OnEdit per l'utente corrente se mancante
-    // I trigger installabili sono per-utente: ogni utente che apre il file deve avere il proprio
+    // Installa trigger OnEdit per l'utente corrente se mancante.
+    // Usa UserProperties come flag per evitare duplicati: getUserTriggers() non è
+    // affidabile nei simple trigger (restituisce [] anche se il trigger esiste).
     try {
-      var ssCheck = SpreadsheetApp.getActiveSpreadsheet();
-      var userTriggers = ScriptApp.getUserTriggers(ssCheck);
-      var onEditPresente = false;
-      for (var ti = 0; ti < userTriggers.length; ti++) {
-        if (userTriggers[ti].getEventType() === ScriptApp.EventType.ON_EDIT) {
-          onEditPresente = true;
-          break;
-        }
-      }
-      if (!onEditPresente) {
+      var ssId = SpreadsheetApp.getActiveSpreadsheet().getId();
+      var userProps = PropertiesService.getUserProperties();
+      var flagKey = 'triggerOk_' + ssId;
+      if (!userProps.getProperty(flagKey)) {
         ScriptApp.newTrigger('Inserimento')
-          .forSpreadsheet(ssCheck)
+          .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
           .onEdit()
           .create();
+        userProps.setProperty(flagKey, '1');
         Logger.log("onOpen: Trigger Inserimento installato per l'utente corrente");
       }
     } catch (eTrigger) {
-      // Fallback: se l'installazione automatica fallisce (primo accesso non ancora autorizzato)
-      // avvisa l'utente di installarlo manualmente
       try {
         ui.alert(
           "Trigger mancante",
@@ -95,7 +89,7 @@ function onOpen() {
           ui.ButtonSet.OK
         );
       } catch (e) {}
-      Logger.log("onOpen: impossibile installare trigger automaticamente - " + eTrigger.toString());
+      Logger.log("onOpen: impossibile installare trigger - " + eTrigger.toString());
     }
 
     // Controlla allineamento nome file vs codice commessa in L56
@@ -133,7 +127,12 @@ function installaAttivatore() {
       .forSpreadsheet(SpreadsheetApp.getActive())
       .onEdit()
       .create();
-    
+
+    // Segna come installato nelle UserProperties per evitare falsi allarmi in onOpen
+    PropertiesService.getUserProperties().setProperty(
+      'triggerOk_' + SpreadsheetApp.getActive().getId(), '1'
+    );
+
     // Mostra un messaggio di conferma
     SpreadsheetApp.getUi().alert('Attivatore installato con successo!');
   } catch (e) {
