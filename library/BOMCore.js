@@ -454,7 +454,17 @@ function aggiornaFoglioBudget(foglioBudget, tipo, valori) {
         }
       }
     }
-    CONFIG.LOG.info("aggiornaFoglioBudget", "Aggiornamento completato per Budget e tutte le offerte");
+    // Aggiorna anche il foglio Master con le stesse celle parametri
+    var foglioMaster = ss.getSheetByName(CONFIG.SHEETS.MASTER);
+    if (foglioMaster) {
+      foglioMaster.getRange("L56").setValue(codiceCommessa);
+      for (var m = 0; m < rangeList.length; m++) {
+        foglioMaster.getRange(rangeList[m].range).setValue(rangeList[m].value);
+      }
+      CONFIG.LOG.info("aggiornaFoglioBudget", "Master - L56 e celle parametri aggiornate");
+    }
+
+    CONFIG.LOG.info("aggiornaFoglioBudget", "Aggiornamento completato per Budget, tutte le offerte e Master");
   } catch (error) {
     CONFIG.LOG.error("aggiornaFoglioBudget", "Errore nell'aggiornamento", error);
     throw error;
