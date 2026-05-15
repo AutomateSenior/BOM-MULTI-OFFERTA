@@ -545,6 +545,15 @@ function rinominaFoglioOfferta(vecchioId, nuovoId) {
       throw new Error("Il nome foglio non può essere solo 'Off_'.");
     }
 
+    // Valida che il nome contenga solo caratteri sicuri per le formule (no spazi o caratteri speciali)
+    if (!/^Off_[A-Za-z0-9_]+$/.test(nuovoId)) {
+      throw new Error(
+        "Il nome '" + nuovoId + "' contiene caratteri non ammessi.\n" +
+        "Usa solo lettere, numeri e underscore (es. Off_01, Off_Alfa, Off_v2).\n" +
+        "Spazi e caratteri speciali rompono le formule nel foglio Budget."
+      );
+    }
+
     // Nessun cambiamento
     if (nuovoId === vecchioId) {
       return vecchioId;
