@@ -17,15 +17,19 @@ function InserimentoBOM(e) {
     if (!e || !e.range) return;
 
     var sheet = e.source.getActiveSheet();
+    var sheetName = sheet.getName();
+
+    // Gestisce solo fogli Off_XX
+    if (!/^Off_/.test(sheetName)) return;
+
     var range = e.range;
-    var cellColor = range.getBackground();
+    var row = range.getRow();
+    var col = range.getColumn();
+    var cellColor = range.getBackground().toLowerCase();
     var value = e.value;
+    var cellAddress = range.getA1Notation();
 
-    // Mappa dei colori
-    var yellowColor = "#ffff00"; // Giallo
-    var greenColor = "#00ff00";  // Verde
-
-    // Mappa soglie per celle gialle (U432 a U463, dopo inserimento riga 77)
+    // Soglie minime per celle gialle colonna U (sezione acquisti)
     var thresholds = {
       "U432": 0.10, "U433": 0.10, "U434": 0.10, "U435": 0.10, "U436": 0.10,
       "U437": 0.10, "U438": 0.10, "U439": 0.10, "U440": 0.10, "U441": 0.10,
@@ -36,25 +40,50 @@ function InserimentoBOM(e) {
       "U462": 0.10, "U463": 0.10
     };
 
-    var cellAddress = range.getA1Notation();
-
-    // Blocca modifica se non è cella gialla
-    if (cellColor != yellowColor) {
-      return; // Permetti solo celle gialle
-    }
-
-    // Controlla soglia per celle gialle
-    if (cellColor === yellowColor) {
+    // --- Caso 1: cella gialla (col U) → applica soglia minima 10% ---
+    if (isColoreGiallo(cellColor)) {
       var threshold = thresholds[cellAddress];
-
       if (threshold !== undefined) {
         var numericValue = parseFloat(String(value).replace(",", "."));
-
         if (isNaN(numericValue) || numericValue < threshold) {
           sheet.getRange(cellAddress).setValue(threshold);
         }
       }
       return;
+    }
+
+    // --- Caso 2: cella verde (L,M,N,S,T) → auto-popola U con 10% o svuota ---
+    if (isColoreVerde(cellColor)) {
+      var colLettera = columnToLetter(col);
+      var colonneVerdiAcquisti = ["L", "M", "N", "S", "T"];
+      if (colonneVerdiAcquisti.indexOf(colLettera) === -1) return;
+
+      // Controlla che la U della stessa riga sia nella sezione acquisti
+      var cellUAddress = "U" + row;
+      if (thresholds[cellUAddress] === undefined) return;
+
+      var colU = letterToColumn("U");
+      var cellU = sheet.getRange(row, colU);
+
+      // Controlla se c'è almeno un valore in L,M,N,S,T sulla stessa riga
+      var hasContent = false;
+      for (var i = 0; i < colonneVerdiAcquisti.length; i++) {
+        var v = sheet.getRange(row, letterToColumn(colonneVerdiAcquisti[i])).getValue();
+        if (v !== "" && v !== null && v !== undefined) {
+          hasContent = true;
+          break;
+        }
+      }
+
+      if (hasContent) {
+        // Popola U con 10% solo se ancora vuota
+        if (cellU.getValue() === "" || cellU.getValue() === null) {
+          cellU.setValue(0.10);
+        }
+      } else {
+        // Tutte le celle verdi vuote → azzera U
+        cellU.clearContent();
+      }
     }
 
   } catch (error) {
