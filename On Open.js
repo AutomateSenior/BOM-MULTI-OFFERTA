@@ -431,3 +431,6 @@ function ripristinaFormuleELabelTutteLeOfferte() { return BOM8.ripristinaFormule
 function getConfigurazioneCompleta() { return BOM8.getConfigurazioneCompleta(); }
 function aggiornaNomeOfferta(id, nuovoNome) { return BOM8.aggiornaNomeOfferta(id, nuovoNome); }
 function rinominaFoglioOfferta(vecchioId, nuovoId) { return BOM8.rinominaFoglioOfferta(vecchioId, nuovoId); }
+
+// Correzione una-tantum formula O/P/Q 439 (era =SUM con duplicazione righe 446/464/469)
+function correggiFormuleRiga439TuttiIFiles() { return BOM8.correggiFormuleRiga439TuttiIFiles(); }

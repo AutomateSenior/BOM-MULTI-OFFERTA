@@ -92,6 +92,117 @@ function caricaFormuleDiRiferimento() {
 }
 
 /**
+ * Corregge le formule in O439, P439, Q439 in tutti i BOM v08.
+ * La formula corretta è =X440+X441 (era =SUM(X440;X441;X446;X464;X469), che duplicava i valori).
+ * Segnala se le righe 446, 464 o 469 hanno valori non-zero (doppio conteggio era attivo).
+ */
+function correggiFormuleRiga439TuttiIFiles() {
+  var ui = SpreadsheetApp.getUi();
+
+  // Cerca tutti i BOM v08
+  var files = DriveApp.searchFiles(CONFIG.SEARCH.buildQuery());
+  var filesTrovati = [];
+  while (files.hasNext()) {
+    var f = files.next();
+    if (CONFIG.SEARCH.validatePattern(f.getName())) {
+      filesTrovati.push(f);
+    }
+  }
+
+  if (filesTrovati.length === 0) {
+    ui.alert("Correzione formule", "Nessun BOM v08 trovato.", ui.ButtonSet.OK);
+    return;
+  }
+
+  var colonne = ["O", "P", "Q"];
+  var righeDaControllare = [446, 464, 469];
+  var reportRighe = [];
+  var reportFile = [];
+  var totaleCorrezioni = 0;
+
+  for (var i = 0; i < filesTrovati.length; i++) {
+    var file = filesTrovati[i];
+    var nomeFile = file.getName();
+    var correzioniFile = 0;
+
+    try {
+      var ss = SpreadsheetApp.open(file);
+      var sheets = ss.getSheets();
+
+      for (var j = 0; j < sheets.length; j++) {
+        var sheet = sheets[j];
+        var sheetName = sheet.getName();
+
+        if (!/^Off_/.test(sheetName) && sheetName !== CONFIG.SHEETS.MASTER) continue;
+
+        // Correggi O439, P439, Q439
+        for (var c = 0; c < colonne.length; c++) {
+          var col = colonne[c];
+          var cell = sheet.getRange(col + "439");
+          var formulaCorretta = "=" + col + "440+" + col + "441";
+          if (cell.getFormula().toUpperCase() !== formulaCorretta.toUpperCase()) {
+            cell.setFormula(formulaCorretta);
+            correzioniFile++;
+          }
+        }
+
+        // Controlla se le righe erroneamente sommate hanno valori non-zero
+        for (var r = 0; r < righeDaControllare.length; r++) {
+          var riga = righeDaControllare[r];
+          for (var c = 0; c < colonne.length; c++) {
+            var val = sheet.getRange(colonne[c] + riga).getValue();
+            if (val !== "" && val !== null && val !== 0 && !isNaN(val)) {
+              reportRighe.push(nomeFile + " → " + sheetName + " → " + colonne[c] + riga + " = " + val);
+            }
+          }
+        }
+      }
+
+      totaleCorrezioni += correzioniFile;
+      reportFile.push(nomeFile + ": " + correzioniFile + " celle corrette");
+
+    } catch (err) {
+      reportFile.push(nomeFile + ": ERRORE - " + err.message);
+    }
+  }
+
+  // Componi report
+  var righeReport = [
+    "CORREZIONE FORMULE O439/P439/Q439 - " + new Date().toLocaleString(),
+    "BOM v08 trovati: " + filesTrovati.length,
+    "Totale celle corrette: " + totaleCorrezioni,
+    "=================================================="
+  ];
+  righeReport = righeReport.concat(reportFile);
+
+  if (reportRighe.length > 0) {
+    righeReport.push("");
+    righeReport.push("⚠ ATTENZIONE - Righe con valori non-zero (doppio conteggio era attivo):");
+    righeReport = righeReport.concat(reportRighe);
+  } else {
+    righeReport.push("");
+    righeReport.push("✓ Righe 446/464/469 tutte a zero: il doppio conteggio non ha impattato i totali.");
+  }
+
+  var testoReport = righeReport.join("\n");
+  salvaSuDrive("report_correzione_formule_439.txt", testoReport);
+
+  // Alert: riepilogo + eventuali warning
+  var msgAlert = "Elaborati " + filesTrovati.length + " BOM v08.\n" +
+                 "Celle corrette: " + totaleCorrezioni + ".\n\n";
+  if (reportRighe.length > 0) {
+    msgAlert += "⚠ ATTENZIONE: " + reportRighe.length + " cella/e con valori nelle righe 446/464/469.\n" +
+                "Il doppio conteggio era attivo su questi file.\n" +
+                "Dettagli nel file 'report_correzione_formule_439.txt' su Drive.";
+  } else {
+    msgAlert += "✓ Nessun impatto sui totali (righe 446/464/469 erano a zero).\n" +
+                "Report salvato su Drive.";
+  }
+
+  ui.alert("Correzione completata", msgAlert, ui.ButtonSet.OK);
+}
+
+/**
  * Cerca file in Google Drive che corrispondono al pattern.
  */
 function cercaFilesByPattern() {
