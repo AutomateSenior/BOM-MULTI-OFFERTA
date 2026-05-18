@@ -106,6 +106,8 @@ var CONFIG = {
       costBodyRental: [22.42, 22.42, 22.42]   // Costi di struttura (€/h): PM, Senior, Expert
     },
     getParams: function(tipo) {
+      // Commesse Interne usano i parametri AUT
+      if (tipo === "Interne") return this["AUT"];
       return this[tipo] || this.DEFAULT;
     }
   },
