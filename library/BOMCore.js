@@ -508,7 +508,12 @@ function aggiornaFoglioBudget(foglioBudget, tipo, valori) {
  */
 function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
   try {
-    var ui = SpreadsheetApp.getUi();
+    // La UI è disponibile solo se l'esecuzione gira come l'utente che ha il
+    // foglio aperto. Quando il trigger (di proprietà di Archive) scatta per la
+    // modifica di un altro utente, gira in background e getUi() non è
+    // utilizzabile: in tal caso procediamo automaticamente, senza popup.
+    var ui = null;
+    try { ui = SpreadsheetApp.getUi(); } catch (eUi) { ui = null; }
     var nomeFile = spreadsheet.getName();
 
     // File Master: crea nuovo file BOM e aprilo
@@ -520,24 +525,28 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
 
       var datiM = _cacheCommessa;
       if (!datiM || datiM.codice !== nuovaCommessaM) {
-        ui.alert("Errore", "Dati commessa non disponibili. Riprovare.", ui.ButtonSet.OK);
+        if (ui) ui.alert("Errore", "Dati commessa non disponibili. Riprovare.", ui.ButtonSet.OK);
+        CONFIG.LOG.warn("gestisciDisallineamentoNomeFile", "Dati commessa non disponibili (Master)");
         return;
       }
 
-      var rispostaMaster = ui.alert(
-        "Crea nuovo file BOM",
-        "Vuoi creare un nuovo file BOM per la commessa " + nuovaCommessaM + "?",
-        ui.ButtonSet.YES_NO
-      );
-
-      if (rispostaMaster !== ui.Button.YES) {
-        foglioBudgetM.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue("");
-        return;
+      // Con UI: chiedi conferma. Senza UI (background): crea automaticamente.
+      if (ui) {
+        var rispostaMaster = ui.alert(
+          "Crea nuovo file BOM",
+          "Vuoi creare un nuovo file BOM per la commessa " + nuovaCommessaM + "?",
+          ui.ButtonSet.YES_NO
+        );
+        if (rispostaMaster !== ui.Button.YES) {
+          foglioBudgetM.getRange(CONFIG.CELLS.CODICE_COMMESSA).setValue("");
+          return;
+        }
       }
 
       var societaCodiceM = getSocietaCodice(datiM.societa);
       if (!societaCodiceM) {
-        ui.alert("Errore", "Società non riconosciuta: \"" + datiM.societa + '"', ui.ButtonSet.OK);
+        if (ui) ui.alert("Errore", "Società non riconosciuta: \"" + datiM.societa + '"', ui.ButtonSet.OK);
+        CONFIG.LOG.warn("gestisciDisallineamentoNomeFile", "Società non riconosciuta (Master): " + datiM.societa);
         return;
       }
 
@@ -564,8 +573,11 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
       }
 
       var urlM = "https://docs.google.com/spreadsheets/d/" + nuovoFileM.getId();
-      apriUrlInNuovaScheda(urlM, ui);
-      ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNomeM, ui.ButtonSet.OK);
+      if (ui) {
+        apriUrlInNuovaScheda(urlM, ui);
+        ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNomeM, ui.ButtonSet.OK);
+      }
+      CONFIG.LOG.info("gestisciDisallineamentoNomeFile", "Nuovo file BOM creato (Master): " + nuovoNomeM);
       return { nuovoFileId: nuovoFileM.getId() };
     }
 
@@ -578,31 +590,43 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
     // Nome file già allineato: niente da fare
     if (nomeFile.indexOf(nuovaCommessa) > -1) return;
 
-    // Mostra disallineamento e chiedi azione
-    var risposta = ui.alert(
-      "Nome file non allineato",
-      "Il nome del file non corrisponde al codice commessa.\n\n" +
-      "Nome file:       " + nomeFile + "\n" +
-      "Codice commessa: " + nuovaCommessa + "\n\n" +
-      "Sì      → Crea nuovo file\n" +
-      "No      → Rinomina il file attuale\n" +
-      "Annulla → Non fare nulla",
-      ui.ButtonSet.YES_NO_CANCEL
-    );
+    // Determina l'azione. Con UI: chiedi all'utente (crea/rinomina/annulla).
+    // Senza UI (background, eseguito come Archive per la modifica di un altro
+    // utente): crea automaticamente il nuovo file.
+    var azione; // 'create' | 'rename' | 'cancel'
+    if (ui) {
+      var risposta = ui.alert(
+        "Nome file non allineato",
+        "Il nome del file non corrisponde al codice commessa.\n\n" +
+        "Nome file:       " + nomeFile + "\n" +
+        "Codice commessa: " + nuovaCommessa + "\n\n" +
+        "Sì      → Crea nuovo file\n" +
+        "No      → Rinomina il file attuale\n" +
+        "Annulla → Non fare nulla",
+        ui.ButtonSet.YES_NO_CANCEL
+      );
+      if (risposta === ui.Button.CANCEL || risposta === ui.Button.CLOSE) azione = 'cancel';
+      else if (risposta === ui.Button.NO) azione = 'rename';
+      else azione = 'create';
+    } else {
+      azione = 'create';
+    }
 
-    if (risposta === ui.Button.CANCEL || risposta === ui.Button.CLOSE) return;
+    if (azione === 'cancel') return;
 
     // Usa dati dalla cache (caricata da cercaNelFileCommessa nella stessa esecuzione)
     var datiCommessa = _cacheCommessa;
     if (!datiCommessa || datiCommessa.codice !== nuovaCommessa) {
-      ui.alert("Errore", "Dati commessa non disponibili. Riprovare.", ui.ButtonSet.OK);
+      if (ui) ui.alert("Errore", "Dati commessa non disponibili. Riprovare.", ui.ButtonSet.OK);
+      CONFIG.LOG.warn("gestisciDisallineamentoNomeFile", "Dati commessa non disponibili");
       return;
     }
 
     // Reverse-map società: nome esteso → codice A-E
     var societaCodice = getSocietaCodice(datiCommessa.societa);
     if (!societaCodice) {
-      ui.alert("Errore", "Società non riconosciuta: \"" + datiCommessa.societa + '"', ui.ButtonSet.OK);
+      if (ui) ui.alert("Errore", "Società non riconosciuta: \"" + datiCommessa.societa + '"', ui.ButtonSet.OK);
+      CONFIG.LOG.warn("gestisciDisallineamentoNomeFile", "Società non riconosciuta: " + datiCommessa.societa);
       return;
     }
 
@@ -620,23 +644,27 @@ function gestisciDisallineamentoNomeFile(spreadsheet, oldValue) {
       nuovaRev
     );
 
-    if (risposta === ui.Button.NO) {
+    if (azione === 'rename') {
       // RINOMINA
       rinominaFileBOM(spreadsheet, nuovoNome);
-      ui.alert("Completato", "File rinominato:\n" + nuovoNome, ui.ButtonSet.OK);
+      if (ui) ui.alert("Completato", "File rinominato:\n" + nuovoNome, ui.ButtonSet.OK);
+      CONFIG.LOG.info("gestisciDisallineamentoNomeFile", "File rinominato: " + nuovoNome);
 
-    } else if (risposta === ui.Button.YES) {
+    } else if (azione === 'create') {
       // NUOVO FILE
       var nuovoFile = creaEConfiguraNuovoFileBOM(spreadsheet, nuovoNome, nuovaCommessa, datiCommessa.riga, oldValue);
       var urlNuovo = "https://docs.google.com/spreadsheets/d/" + nuovoFile.getId();
-      apriUrlInNuovaScheda(urlNuovo, ui);
-      ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNome, ui.ButtonSet.OK);
+      if (ui) {
+        apriUrlInNuovaScheda(urlNuovo, ui);
+        ui.alert("Completato", "Nuovo file creato e aperto:\n" + nuovoNome, ui.ButtonSet.OK);
+      }
+      CONFIG.LOG.info("gestisciDisallineamentoNomeFile", "Nuovo file BOM creato: " + nuovoNome);
       return { nuovoFileId: nuovoFile.getId() };
     }
 
   } catch (e) {
     CONFIG.LOG.error("gestisciDisallineamentoNomeFile", "Errore", e);
-    SpreadsheetApp.getUi().alert("Errore: " + e.toString());
+    try { SpreadsheetApp.getUi().alert("Errore: " + e.toString()); } catch (eUi) {}
   }
 }
 

@@ -16,14 +16,19 @@ function Inserimento(e){
         Logger.log("Inserimento: L56 scritta in " + sheetName + " - reindirizzo a Budget");
         var ss = SpreadsheetApp.getActiveSpreadsheet();
         var nuovoValore = range.getValue();
-        var ui = SpreadsheetApp.getUi();
 
-        ui.alert(
-          "Foglio errato",
-          "Il codice commessa va inserito nel foglio Budget, non in " + sheetName + ".\n" +
-          "Il valore verrà copiato automaticamente in Budget.",
-          ui.ButtonSet.OK
-        );
+        // UI disponibile solo se il trigger gira come l'utente che ha il foglio
+        // aperto; in background (eseguito come Archive per modifiche altrui) no.
+        var ui = null;
+        try { ui = SpreadsheetApp.getUi(); } catch (eUi) { ui = null; }
+        if (ui) {
+          ui.alert(
+            "Foglio errato",
+            "Il codice commessa va inserito nel foglio Budget, non in " + sheetName + ".\n" +
+            "Il valore verrà copiato automaticamente in Budget.",
+            ui.ButtonSet.OK
+          );
+        }
 
         // Cancella il valore scritto nel posto sbagliato
         range.clearContent();

@@ -64,31 +64,57 @@ function onOpen() {
     // Aggiungi il menu all'interfaccia utente
     menuPrincipale.addToUi();
 
-    // Installa trigger OnEdit per l'utente corrente se mancante.
-    // Usa UserProperties come flag per evitare duplicati: getUserTriggers() non è
-    // affidabile nei simple trigger (restituisce [] anche se il trigger esiste).
+    // Gestione trigger OnEdit: UN SOLO trigger, di proprietà dell'account
+    // ACCOUNT_TRIGGER (Archive). Un trigger installabile scatta per le modifiche
+    // di tutti gli editor ed esegue come il suo proprietario, quindi un unico
+    // trigger di Archive basta per tutti e crea il file sempre come Archive.
+    // Gli altri utenti NON devono possedere un trigger, altrimenti si creano
+    // file duplicati: qui rimuoviamo eventuali trigger residui installati in
+    // passato dall'auto-install per-utente.
     try {
+      var ACCOUNT_TRIGGER = (BOM8.CONFIG && BOM8.CONFIG.OWNER && BOM8.CONFIG.OWNER.ACCOUNT_TRIGGER)
+        || 'archive@automatesrl.it';
+      var utenteCorrente = Session.getEffectiveUser().getEmail();
       var ssId = SpreadsheetApp.getActiveSpreadsheet().getId();
       var userProps = PropertiesService.getUserProperties();
       var flagKey = 'triggerOk_' + ssId;
-      if (!userProps.getProperty(flagKey)) {
-        ScriptApp.newTrigger('Inserimento')
-          .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
-          .onEdit()
-          .create();
+
+      if (utenteCorrente === ACCOUNT_TRIGGER) {
+        // Account proprietario: assicura UN solo trigger Inserimento installato.
+        var mieiTrigger = ScriptApp.getProjectTriggers();
+        var giaPresente = false;
+        for (var i = 0; i < mieiTrigger.length; i++) {
+          if (mieiTrigger[i].getHandlerFunction() === 'Inserimento' &&
+              mieiTrigger[i].getEventType() === ScriptApp.EventType.ON_EDIT) {
+            if (giaPresente) {
+              ScriptApp.deleteTrigger(mieiTrigger[i]); // rimuove eventuali duplicati
+            } else {
+              giaPresente = true;
+            }
+          }
+        }
+        if (!giaPresente) {
+          ScriptApp.newTrigger('Inserimento')
+            .forSpreadsheet(SpreadsheetApp.getActiveSpreadsheet())
+            .onEdit()
+            .create();
+          Logger.log("onOpen: Trigger Inserimento installato per Archive");
+        }
         userProps.setProperty(flagKey, '1');
-        Logger.log("onOpen: Trigger Inserimento installato per l'utente corrente");
+      } else {
+        // Altri utenti: rimuovi qualsiasi trigger Inserimento di loro proprietà.
+        var triggerUtente = ScriptApp.getProjectTriggers();
+        for (var j = 0; j < triggerUtente.length; j++) {
+          if (triggerUtente[j].getHandlerFunction() === 'Inserimento' &&
+              triggerUtente[j].getEventType() === ScriptApp.EventType.ON_EDIT) {
+            ScriptApp.deleteTrigger(triggerUtente[j]);
+            Logger.log("onOpen: rimosso trigger Inserimento residuo di " + utenteCorrente);
+          }
+        }
+        userProps.deleteProperty(flagKey);
       }
     } catch (eTrigger) {
-      try {
-        ui.alert(
-          "Trigger mancante",
-          "Il trigger OnEdit non è stato installato automaticamente.\n\n" +
-          "Vai su Automate → Installa attivatore per attivarlo.",
-          ui.ButtonSet.OK
-        );
-      } catch (e) {}
-      Logger.log("onOpen: impossibile installare trigger - " + eTrigger.toString());
+      Logger.log("onOpen: gestione trigger fallita - " + eTrigger.toString());
     }
 
     // Controlla allineamento nome file vs codice commessa in L56
@@ -111,6 +137,30 @@ function onOpen() {
 function installaAttivatore() {
   // Questa funzione richiederà automaticamente le autorizzazioni necessarie
   try {
+    // Il trigger deve appartenere SOLO all'account proprietario (Archive):
+    // un trigger per ogni utente creerebbe file duplicati. Se a installarlo è
+    // un altro utente, rimuoviamo invece eventuali suoi trigger residui.
+    var ACCOUNT_TRIGGER = (BOM8.CONFIG && BOM8.CONFIG.OWNER && BOM8.CONFIG.OWNER.ACCOUNT_TRIGGER)
+      || 'archive@automatesrl.it';
+    var utenteCorrente = Session.getEffectiveUser().getEmail();
+    if (utenteCorrente !== ACCOUNT_TRIGGER) {
+      var miei = ScriptApp.getProjectTriggers();
+      for (var k = 0; k < miei.length; k++) {
+        if (miei[k].getHandlerFunction() === 'Inserimento') {
+          ScriptApp.deleteTrigger(miei[k]);
+        }
+      }
+      PropertiesService.getUserProperties()
+        .deleteProperty('triggerOk_' + SpreadsheetApp.getActive().getId());
+      SpreadsheetApp.getUi().alert(
+        "Attivatore non necessario",
+        "L'attivatore è gestito centralmente dall'account " + ACCOUNT_TRIGGER + ".\n" +
+        "Non serve installarlo con questo utente: la creazione dei file BOM funziona comunque.",
+        SpreadsheetApp.getUi().ButtonSet.OK
+      );
+      return;
+    }
+
     // Elimina eventuali attivatori esistenti per evitare duplicati
     var triggersPresenti = ScriptApp.getProjectTriggers();
     for (var i = 0; i < triggersPresenti.length; i++) {

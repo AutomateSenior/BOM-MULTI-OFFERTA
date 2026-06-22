@@ -120,6 +120,18 @@ var CONFIG = {
   },
 
   /**
+   * Account proprietario dell'UNICO trigger onEdit.
+   * Un singolo trigger installabile di questo account scatta per le modifiche
+   * di tutti gli editor ed esegue come questo account: così i nuovi file BOM
+   * sono sempre di sua proprietà e non si creano duplicati (un trigger per
+   * utente genererebbe un file per utente). Gli altri utenti NON devono avere
+   * un proprio trigger: onOpen lo rimuove automaticamente.
+   */
+  OWNER: {
+    ACCOUNT_TRIGGER: "archive@automatesrl.it"
+  },
+
+  /**
    * Percentuali per durata assistenza post-vendita
    * Mese → percentuale applicata al valore progetto
    */
