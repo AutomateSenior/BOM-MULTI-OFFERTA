@@ -425,10 +425,11 @@ function toggleAbilitaOfferta(id, abilitata) {
 /**
  * V08: Imposta o cancella l'indicatore di rigenerazione necessaria in O62
  * @param {boolean} mostra - true per mostrare indicatore, false per cancellare
+ * @param {Spreadsheet} [spreadsheet] - default: spreadsheet attivo
  */
-function impostaIndicatoreRigenerazione(mostra) {
+function impostaIndicatoreRigenerazione(mostra, spreadsheet) {
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = spreadsheet || SpreadsheetApp.getActiveSpreadsheet();
     var budget = ss.getSheetByName(CONFIG.SHEETS.BUDGET);
 
     if (!budget) {
@@ -437,6 +438,9 @@ function impostaIndicatoreRigenerazione(mostra) {
     }
 
     var cella = budget.getRange(CONFIG.CELLS.INDICATORE_RIGENERA);
+
+    // Chiamata ad ogni modifica delle offerte: evita scritture se già segnalato
+    if (mostra && cella.getValue() === "⚠️ Rigenerazione necessaria") return;
 
     if (mostra) {
       cella.setValue("⚠️ Rigenerazione necessaria");
@@ -449,6 +453,11 @@ function impostaIndicatoreRigenerazione(mostra) {
       cella.setBackground(null);
       cella.setFontColor(null);
       cella.setFontWeight("normal");
+      var utente = "";
+      try { utente = Session.getActiveUser().getEmail(); } catch (eUser) { utente = ""; }
+      cella.setNote("Ultima rigenerazione: " +
+        Utilities.formatDate(new Date(), ss.getSpreadsheetTimeZone(), "dd/MM/yyyy HH:mm") +
+        (utente ? " (" + utente + ")" : ""));
       CONFIG.LOG.info("impostaIndicatoreRigenerazione", "Indicatore allineato in " + CONFIG.CELLS.INDICATORE_RIGENERA);
     }
 

@@ -16,8 +16,13 @@ function InserimentoBOM(e) {
   try {
     if (!e || !e.range) return;
 
-    var sheet = e.source.getActiveSheet();
+    var sheet = e.range.getSheet();
     var sheetName = sheet.getName();
+
+    // Qualsiasi modifica alle offerte o alla configurazione disallinea il Budget
+    if (/^Off_/.test(sheetName) || sheetName === CONFIG.SHEETS.CONFIGURAZIONE_OFFERTE) {
+      impostaIndicatoreRigenerazione(true, e.source);
+    }
 
     // Gestisce solo fogli Off_XX
     if (!/^Off_/.test(sheetName)) return;
