@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Roboto', 'Segoe UI', Arial, sans-serif; font-size: 14px; color: #202124; padding: 20px; background: #fff; }
+    h2 { font-size: 20px; font-weight: 500; margin-bottom: 12px; color: #1a73e8; }
+    h3 { font-size: 15px; font-weight: 500; margin: 16px 0 8px; }
+    p.nota { color: #5f6368; font-size: 13px; margin-bottom: 12px; }
+    .sorgente { display: flex; gap: 16px; margin-bottom: 12px; }
+    .sorgente label { cursor: pointer; }
+    .campo { margin-bottom: 12px; }
+    .campo input[type=text] { width: 100%; padding: 8px; border: 1px solid #dadce0; border-radius: 4px; font-size: 14px; }
+    .nascosto { display: none; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border: 1px solid #e8eaed; padding: 6px 8px; text-align: left; }
+    th { background: #f8f9fa; font-weight: 500; }
+    td.num { text-align: right; }
+    .box { border-radius: 6px; padding: 10px 12px; margin: 10px 0; font-size: 13px; }
+    .box ul { margin-left: 18px; }
+    .errore { background: #fce8e6; border: 1px solid #f28b82; color: #a50e0e; }
+    .avviso { background: #fef7e0; border: 1px solid #fdd663; color: #7a4f01; }
+    .ok { background: #e6f4ea; border: 1px solid #81c995; color: #0d652d; }
+    .pulsanti { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+    button { padding: 8px 16px; border-radius: 4px; border: 1px solid #dadce0; background: #fff; cursor: pointer; font-size: 14px; }
+    button.primario { background: #1a73e8; color: #fff; border-color: #1a73e8; }
+    button.pericolo { background: #d93025; color: #fff; border-color: #d93025; }
+    button:disabled { opacity: 0.5; cursor: default; }
+    #stato { color: #5f6368; font-size: 13px; margin-top: 8px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <h2>Importa computo metrico</h2>
+  <p class="nota">Il file deve contenere il foglio <b>Export_BOM</b>. L'analisi non modifica il BOM.</p>
+
+  <div id="passo-scelta">
+    <div class="sorgente">
+      <label><input type="radio" name="sorgente" value="file" checked> Dal computer</label>
+      <label><input type="radio" name="sorgente" value="drive"> Da Google Drive</label>
+    </div>
+    <div class="campo" id="campo-file"><input type="file" id="file" accept=".xlsx,.xlsm"></div>
+    <div class="campo nascosto" id="campo-drive"><input type="text" id="drive" placeholder="Link o ID del file su Drive"></div>
+    <div class="pulsanti">
+      <button onclick="google.script.host.close()">Annulla</button>
+      <button class="primario" id="btn-analizza" onclick="analizza()">Analizza</button>
+    </div>
+  </div>
+
+  <div id="passo-riepilogo" class="nascosto"></div>
+  <div id="stato"></div>
+
+  <script>
+    var analisi = null;
+
+    document.querySelectorAll('input[name=sorgente]').forEach(function(r) {
+      r.addEventListener('change', function() {
+        var drive = this.value === 'drive';
+        document.getElementById('campo-drive').classList.toggle('nascosto', !drive);
+        document.getElementById('campo-file').classList.toggle('nascosto', drive);
+      });
+    });
+
+    function stato(testo) { document.getElementById('stato').textContent = testo || ''; }
+
+    function analizza() {
+      var drive = document.querySelector('input[name=sorgente]:checked').value === 'drive';
+      document.getElementById('btn-analizza').disabled = true;
+      stato('Analisi in corso...');
+
+      var runner = google.script.run.withSuccessHandler(mostraRiepilogo).withFailureHandler(errore);
+      if (drive) {
+        var link = document.getElementById('drive').value.trim();
+        if (!link) return errore({ message: 'Inserire il link o l\'ID del file su Drive.' });
+        runner.analizzaComputoDaDrive(link);
+      } else {
+        var f = document.getElementById('file').files[0];
+        if (!f) return errore({ message: 'Selezionare un file.' });
+        var reader = new FileReader();
+        reader.onload = function() { runner.analizzaComputoDaFile(reader.result.split(',')[1], f.name); };
+        reader.readAsDataURL(f);
+      }
+    }
+
+    function errore(e) {
+      document.getElementById('btn-analizza').disabled = false;
+      stato('');
+      var div = document.getElementById('passo-riepilogo');
+      div.classList.remove('nascosto');
+      div.innerHTML = '<div class="box errore">' + esc(e.message || String(e)) + '</div>';
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, function(c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; });
+    }
+    function lista(voci) { return '<ul>' + voci.map(function(v) { return '<li>' + esc(v) + '</li>'; }).join('') + '</ul>'; }
+    function euro(n) { return Number(n).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+
+    function mostraRiepilogo(a) {
+      analisi = a;
+      stato('');
+      document.getElementById('passo-scelta').classList.add('nascosto');
+      var div = document.getElementById('passo-riepilogo');
+      div.classList.remove('nascosto');
+
+      var html = '<p class="nota">' + esc(a.nomeFile) + ' · commessa ' + esc(a.commessa) + ' · ' + esc(a.revisione) + '</p>';
+
+      if (a.errori.length > 0) {
+        html += '<div class="box errore"><b>Import non possibile.</b> Correggere l\'Export_BOM:' + lista(a.errori) + '</div>';
+        html += '<div class="pulsanti"><button onclick="google.script.host.close()">Chiudi</button></div>';
+        div.innerHTML = html;
+        return;
+      }
+
+      html += '<h3>Offerte che verranno create</h3><table><tr><th>Offerta</th><th>Lotto</th><th>Prezzo</th>' +
+              '<th>Righe PLC / SCADA</th><th>Ore ufficio</th><th>Giorni comm.</th><th>Acquisti</th></tr>';
+      a.riepilogo.forEach(function(r) {
+        html += '<tr><td>' + esc(r.offerta) + '</td><td>' + esc(r.nome) + '</td><td class="num">' + euro(r.prezzo) + '</td>' +
+                '<td class="num">' + r.righePLC + ' / ' + r.righeSCADA + '</td><td class="num">' + r.oreUfficio + '</td>' +
+                '<td class="num">' + r.giorniCommissioning + '</td><td class="num">' + euro(r.acquisti) + '</td></tr>';
+      });
+      html += '</table>';
+
+      if (a.avvisi.length > 0) html += '<div class="box avviso"><b>Avvisi</b>' + lista(a.avvisi) + '</div>';
+
+      html += '<div class="box errore"><b>Attenzione: il BOM verrà azzerato.</b> ' +
+              (a.offerteDaEliminare.length > 0
+                ? 'Verranno eliminate le offerte ' + esc(a.offerteDaEliminare.join(', ')) + ' con tutti i loro dati. '
+                : '') +
+              'L\'operazione non si può annullare.</div>';
+      html += '<div class="pulsanti"><button onclick="google.script.host.close()">Annulla</button>' +
+              '<button class="pericolo" id="btn-importa" onclick="importa()">Azzera e importa</button></div>';
+      div.innerHTML = html;
+    }
+
+    function importa() {
+      document.getElementById('btn-importa').disabled = true;
+      stato('Import in corso: creazione offerte e rigenerazione Budget...');
+      google.script.run
+        .withSuccessHandler(function(esito) {
+          stato('');
+          var html = '<div class="box ok"><b>Import completato.</b> Offerte create: ' + esc(esito.offerte.join(', ')) + '. Budget rigenerato.</div>';
+          if (esito.avvisi.length > 0) html += '<div class="box avviso"><b>Avvisi</b>' + lista(esito.avvisi) + '</div>';
+          html += '<div class="pulsanti"><button class="primario" onclick="google.script.host.close()">Chiudi</button></div>';
+          document.getElementById('passo-riepilogo').innerHTML = html;
+        })
+        .withFailureHandler(function(e) {
+          stato('');
+          document.getElementById('passo-riepilogo').innerHTML =
+            '<div class="box errore"><b>Import interrotto.</b> ' + esc(e.message || String(e)) + '</div>' +
+            '<div class="pulsanti"><button onclick="google.script.host.close()">Chiudi</button></div>';
+        })
+        .eseguiImportComputo(analisi);
+    }
+  </script>
+</body>
+</html>

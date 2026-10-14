@@ -35,7 +35,9 @@ function onOpen() {
     .addItem('⚙️ Configurazione avanzata...', 'mostraConfigurazioneOfferte')
     .addSeparator()
     .addItem('🔄 Rigenera Budget', 'rigeneraBudgetDaOfferte')
-    .addItem('🗑️ Azzera tutte le offerte', 'azzeraTutteLeOfferte');
+    .addItem('🗑️ Azzera tutte le offerte', 'azzeraTutteLeOfferte')
+    .addSeparator()
+    .addItem('📥 Importa computo metrico...', 'mostraImportComputo');
 
     menuPrincipale.addSubMenu(menuGestioneOfferte);
 
@@ -280,6 +282,16 @@ function mostraGestioneRapidaOfferte() {
 }
 
 /**
+ * Mostra dialog di import del computo metrico (usa file HTML locale)
+ */
+function mostraImportComputo() {
+  var html = HtmlService.createHtmlOutputFromFile('ImportComputoDialog')
+    .setWidth(760)
+    .setHeight(560);
+  SpreadsheetApp.getUi().showModalDialog(html, 'Importa computo metrico');
+}
+
+/**
  * Mostra sidebar configurazione offerte (usa file HTML locale)
  */
 function mostraConfigurazioneOfferte() {
@@ -481,6 +493,11 @@ function ripristinaFormuleELabelTutteLeOfferte() { return BOM8.ripristinaFormule
 function getConfigurazioneCompleta() { return BOM8.getConfigurazioneCompleta(); }
 function aggiornaNomeOfferta(id, nuovoNome) { return BOM8.aggiornaNomeOfferta(id, nuovoNome); }
 function rinominaFoglioOfferta(vecchioId, nuovoId) { return BOM8.rinominaFoglioOfferta(vecchioId, nuovoId); }
+
+// Import computo metrico (foglio Export_BOM) - chiamate da ImportComputoDialog.html
+function analizzaComputoDaFile(base64, nomeFile) { return BOM8.analizzaComputoDaFile(base64, nomeFile); }
+function analizzaComputoDaDrive(linkOId) { return BOM8.analizzaComputoDaDrive(linkOId); }
+function eseguiImportComputo(analisi) { return BOM8.eseguiImportComputo(analisi); }
 
 // Correzione una-tantum formula O/P/Q 439 (era =SUM con duplicazione righe 446/464/469)
 function correggiFormuleRiga439TuttiIFiles() { return BOM8.correggiFormuleRiga439TuttiIFiles(); }
