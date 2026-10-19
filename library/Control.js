@@ -825,44 +825,45 @@ function verificaFormuleUltraVeloce(spreadsheet, nomeFile, formuleDiRiferimento,
   };
 }
 // ============================================================================
-// Correzione trasferta "Lavoro festivo e notturno" (Commissioning Europa/Mondo)
+// Correzioni BOM v08 del 19/10/2026
 // ============================================================================
-// Nella colonna U (costo trasferta giornaliero) la riga "Lavoro festivo e notturno"
-// delle zone Europa e Mondo puntava alla trasferta della zona precedente
-// (Europa → =T44 Italia, Mondo → =T45 Europa). La formula corretta è
-// =$T$<riga "Trasferta <zona>">. Le righe vengono trovate per etichetta e livello.
+// 1) Colonna U (costo trasferta giornaliero) della riga "Lavoro festivo e notturno":
+//    nelle zone Europa e Mondo puntava alla trasferta della zona precedente
+//    (Europa → =T44 Italia, Mondo → =T45 Europa). Corretta in =$T$<riga "Trasferta <zona>">
+//    nei fogli Master e Off_XX.
+// 2) Budget, colonna Tipo degli Acquisti (M442:M473): la convalida usava l'elenco
+//    Master!X3:X6 ed escludeva "Servizi" (X7). Estesa a tutto l'elenco.
+// Le righe vengono trovate per etichetta e livello.
 
-var CORREZIONE_FESTIVO = {
-  ETICHETTA: "Lavoro festivo e notturno",
+var CORREZIONI_BOM = {
+  ETICHETTA_FESTIVO: "Lavoro festivo e notturno",
   ZONE: ["Italia", "Europa", "Mondo"],
-  PROP_FATTI: "correzioneFestivo_fileFatti",
-  REPORT: "report_correzione_festivo_notturno.txt",
+  PROP_FATTI: "correzioniBOM_fileFatti",
+  REPORT: "report_correzioni_bom_19_10_2026.txt",
   TEMPO_MAX_MS: 5 * 60 * 1000
 };
 
 /**
- * Corregge il foglio Master e tutte le Off_XX del file attivo.
+ * Applica le correzioni al file attivo.
  */
-function correggiTrasfertaFestivoNotturno() {
+function correggiBOM() {
   var ui = SpreadsheetApp.getUi();
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var esito = correggiTrasfertaFestivoInFile_(ss);
+  var esito = correggiBOMInFile_(SpreadsheetApp.getActiveSpreadsheet());
   var righe = esito.righe.length ? esito.righe : ["Nessuna correzione necessaria."];
-  ui.alert("Correzione trasferta festivo/notturno",
-           "Celle corrette: " + esito.corrette + "\n\n" + righe.join("\n"),
+  ui.alert("Correzioni BOM", "Correzioni applicate: " + esito.corrette + "\n\n" + righe.join("\n"),
            ui.ButtonSet.OK);
 }
 
 /**
- * Corregge tutti i BOM v08 (stessa ricerca di correggiFormuleRiga439TuttiIFiles).
+ * Applica le correzioni a tutti i BOM v08 (stessa ricerca di correggiFormuleRiga439TuttiIFiles).
  * Esclude le istantanee SOM_. Se il tempo di esecuzione sta per scadere si ferma:
  * rilanciandola riprende dai file non ancora elaborati.
  */
-function correggiTrasfertaFestivoNotturnoTuttiIFiles() {
+function correggiBOMTuttiIFiles() {
   var ui = SpreadsheetApp.getUi();
   var inizio = Date.now();
   var props = PropertiesService.getScriptProperties();
-  var fatti = JSON.parse(props.getProperty(CORREZIONE_FESTIVO.PROP_FATTI) || "{}");
+  var fatti = JSON.parse(props.getProperty(CORREZIONI_BOM.PROP_FATTI) || "{}");
 
   var files = DriveApp.searchFiles(CONFIG.SEARCH.buildQuery());
   var daFare = [];
@@ -877,12 +878,12 @@ function correggiTrasfertaFestivoNotturnoTuttiIFiles() {
   var totaleCorrezioni = 0, elaborati = 0, impattati = [];
 
   for (var i = 0; i < daFare.length; i++) {
-    if (Date.now() - inizio > CORREZIONE_FESTIVO.TEMPO_MAX_MS) break;
+    if (Date.now() - inizio > CORREZIONI_BOM.TEMPO_MAX_MS) break;
     var file = daFare[i];
     try {
-      var esito = correggiTrasfertaFestivoInFile_(SpreadsheetApp.open(file));
+      var esito = correggiBOMInFile_(SpreadsheetApp.open(file));
       totaleCorrezioni += esito.corrette;
-      report.push(file.getName() + ": " + esito.corrette + " celle corrette");
+      report.push(file.getName() + ": " + esito.corrette + " correzioni");
       esito.righe.forEach(function(r) { report.push("   " + r); });
       if (esito.conGiorni) impattati.push(file.getName());
       fatti[file.getId()] = true;
@@ -894,97 +895,157 @@ function correggiTrasfertaFestivoNotturnoTuttiIFiles() {
 
   var rimasti = daFare.length - elaborati;
   if (rimasti > 0) {
-    props.setProperty(CORREZIONE_FESTIVO.PROP_FATTI, JSON.stringify(fatti));
+    props.setProperty(CORREZIONI_BOM.PROP_FATTI, JSON.stringify(fatti));
   } else {
-    props.deleteProperty(CORREZIONE_FESTIVO.PROP_FATTI);
+    props.deleteProperty(CORREZIONI_BOM.PROP_FATTI);
   }
 
   var intestazione = [
-    "CORREZIONE TRASFERTA LAVORO FESTIVO E NOTTURNO - " + new Date().toLocaleString(),
+    "CORREZIONI BOM v08 (19/10/2026) - " + new Date().toLocaleString(),
+    "1) trasferta 'Lavoro festivo e notturno' Europa/Mondo",
+    "2) Budget: 'Servizi' nella convalida Tipo degli Acquisti",
     "BOM v08 elaborati in questa esecuzione: " + elaborati + " (rimasti: " + rimasti + ")",
-    "Totale celle corrette: " + totaleCorrezioni,
+    "Totale correzioni: " + totaleCorrezioni,
     "=================================================="
   ];
   if (impattati.length) {
     report.push("");
-    report.push("⚠ File con giorni inseriti su righe errate (il costo calcolato era sbagliato):");
+    report.push("⚠ File con giorni inseriti su righe festivo/notturno errate (il costo calcolato era sbagliato):");
     report = report.concat(impattati);
   }
   // Un report per esecuzione, per non sovrascrivere quello delle esecuzioni precedenti
-  var nomeReport = CORREZIONE_FESTIVO.REPORT.replace(".txt", "_" +
+  var nomeReport = CORREZIONI_BOM.REPORT.replace(".txt", "_" +
     Utilities.formatDate(new Date(), "Europe/Rome", "yyyyMMdd_HHmmss") + ".txt");
   salvaSuDrive(nomeReport, intestazione.concat(report).join("\n"));
 
-  var msg = "Elaborati " + elaborati + " BOM v08, celle corrette: " + totaleCorrezioni + ".\n";
+  var msg = "Elaborati " + elaborati + " BOM v08, correzioni applicate: " + totaleCorrezioni + ".\n";
   if (impattati.length) {
-    msg += "⚠ " + impattati.length + " file avevano giorni inseriti sulle righe errate.\n";
+    msg += "⚠ " + impattati.length + " file avevano giorni inseriti sulle righe festivo/notturno errate.\n";
   }
   msg += rimasti > 0
     ? "\nTempo esaurito: restano " + rimasti + " file. Rilancia la funzione per continuare."
     : "\nCompletato.";
   msg += "\nReport su Drive: " + nomeReport;
-  ui.alert("Correzione trasferta festivo/notturno", msg, ui.ButtonSet.OK);
+  ui.alert("Correzioni BOM", msg, ui.ButtonSet.OK);
 }
 
 /**
- * Corregge la colonna U delle righe "Lavoro festivo e notturno" nei fogli Master e Off_XX.
  * @returns {{corrette: number, conGiorni: boolean, righe: string[]}}
  */
-function correggiTrasfertaFestivoInFile_(ss) {
+function correggiBOMInFile_(ss) {
   var esito = { corrette: 0, conGiorni: false, righe: [] };
   var fogli = ss.getSheets();
   for (var i = 0; i < fogli.length; i++) {
-    var sheet = fogli[i];
-    var nome = sheet.getName();
-    if (!/^Off_/.test(nome) && nome !== CONFIG.SHEETS.MASTER) continue;
-
-    var n = sheet.getLastRow();
-    var v = sheet.getRange(1, 1, n, 12).getValues();      // A..L: H = livello, L = etichetta
-    var formuleU = sheet.getRange(1, 21, n, 1).getFormulas();
-    var giorniS = sheet.getRange(1, 19, n, 1).getValues();
-    var livello = function(r) { return Number(v[r - 1][7]) || 0; };
-    var etichetta = function(r) { return String(v[r - 1][11] || "").trim(); };
-    var trova = function(label, liv, da, a) {
-      for (var r = da; r <= a; r++) {
-        if (etichetta(r) === label && (!liv || livello(r) === liv)) return r;
-      }
-      return 0;
-    };
-    var fine = function(r) {
-      for (var j = r + 1; j <= n; j++) {
-        if (livello(j) > 0 && livello(j) <= livello(r)) return j - 1;
-      }
-      return n;
-    };
-
-    var comm = trova("Commissioning", 2, 1, n);
-    if (!comm) { esito.righe.push(nome + ": sezione Commissioning non trovata"); continue; }
-
-    CORREZIONE_FESTIVO.ZONE.forEach(function(z) {
-      var trasf = trova("Trasferta " + z, 0, 1, comm);
-      var zona = trova(z, 3, comm, fine(comm));
-      var riga = zona ? trova(CORREZIONE_FESTIVO.ETICHETTA, 4, zona, fine(zona)) : 0;
-      if (!trasf || !riga) {
-        esito.righe.push(nome + " " + z + ": righe non trovate, nessuna modifica");
-        return;
-      }
-      var attesa = "=$T$" + trasf;
-      var attuale = formuleU[riga - 1][0];
-      if (attuale === attesa) return;
-      // Tocca solo formule del tipo =T<riga> (eventuali modifiche manuali restano)
-      if (!/^=\$?T\$?\d+$/i.test(attuale)) {
-        esito.righe.push(nome + "!U" + riga + " (" + z + "): valore non standard '" +
-                         (attuale || sheet.getRange(riga, 21).getValue()) + "', non modificato");
-        return;
-      }
-      sheet.getRange(riga, 21).setFormula(attesa);
-      esito.corrette++;
-      var giorni = Number(giorniS[riga - 1][0]) || 0;
-      var errata = attuale.replace(/\$/g, "").toUpperCase() !== attesa.replace(/\$/g, "");
-      if (errata && giorni) esito.conGiorni = true;
-      esito.righe.push(nome + "!U" + riga + " (" + z + "): " + attuale + " → " + attesa +
-                       (errata && giorni ? "  ⚠ " + giorni + " giorni inseriti" : ""));
-    });
+    var nome = fogli[i].getName();
+    if (/^Off_/.test(nome) || nome === CONFIG.SHEETS.MASTER) {
+      correggiTrasfertaFestivo_(fogli[i], esito);
+    } else if (nome === CONFIG.SHEETS.BUDGET) {
+      correggiConvalidaTipoAcquisti_(fogli[i], esito);
+    }
   }
   return esito;
+}
+
+/**
+ * Navigazione della struttura del foglio per livello BBS (colonna H) ed etichetta (colonna L).
+ */
+function strutturaFoglio_(sheet) {
+  var n = sheet.getLastRow();
+  var v = sheet.getRange(1, 1, n, 13).getValues();
+  var s = {
+    n: n,
+    livello: function(r) { return Number(v[r - 1][7]) || 0; },
+    etichetta: function(r) { return String(v[r - 1][11] || "").trim(); },
+    colonnaM: function(r) { return String(v[r - 1][12] || "").trim(); }
+  };
+  s.trova = function(label, liv, da, a) {
+    for (var r = da; r <= a; r++) {
+      if (s.etichetta(r) === label && (!liv || s.livello(r) === liv)) return r;
+    }
+    return 0;
+  };
+  s.fine = function(r) {
+    for (var j = r + 1; j <= n; j++) {
+      if (s.livello(j) > 0 && s.livello(j) <= s.livello(r)) return j - 1;
+    }
+    return n;
+  };
+  return s;
+}
+
+/**
+ * Colonna U delle righe "Lavoro festivo e notturno" (fogli Master e Off_XX).
+ */
+function correggiTrasfertaFestivo_(sheet, esito) {
+  var nome = sheet.getName();
+  var s = strutturaFoglio_(sheet);
+  var formuleU = sheet.getRange(1, 21, s.n, 1).getFormulas();
+  var giorniS = sheet.getRange(1, 19, s.n, 1).getValues();
+
+  var comm = s.trova("Commissioning", 2, 1, s.n);
+  if (!comm) { esito.righe.push(nome + ": sezione Commissioning non trovata"); return; }
+
+  CORREZIONI_BOM.ZONE.forEach(function(z) {
+    var trasf = s.trova("Trasferta " + z, 0, 1, comm);
+    var zona = s.trova(z, 3, comm, s.fine(comm));
+    var riga = zona ? s.trova(CORREZIONI_BOM.ETICHETTA_FESTIVO, 4, zona, s.fine(zona)) : 0;
+    if (!trasf || !riga) {
+      esito.righe.push(nome + " " + z + ": righe festivo/notturno non trovate, nessuna modifica");
+      return;
+    }
+    var attesa = "=$T$" + trasf;
+    var attuale = formuleU[riga - 1][0];
+    if (attuale === attesa) return;
+    // Tocca solo formule del tipo =T<riga> (eventuali modifiche manuali restano)
+    if (!/^=\$?T\$?\d+$/i.test(attuale)) {
+      esito.righe.push(nome + "!U" + riga + " (" + z + "): valore non standard '" +
+                       (attuale || sheet.getRange(riga, 21).getValue()) + "', non modificato");
+      return;
+    }
+    sheet.getRange(riga, 21).setFormula(attesa);
+    esito.corrette++;
+    var giorni = Number(giorniS[riga - 1][0]) || 0;
+    var errata = attuale.replace(/\$/g, "").toUpperCase() !== attesa.replace(/\$/g, "");
+    if (errata && giorni) esito.conGiorni = true;
+    esito.righe.push(nome + "!U" + riga + " (" + z + "): " + attuale + " → " + attesa +
+                     (errata && giorni ? "  ⚠ " + giorni + " giorni inseriti" : ""));
+  });
+}
+
+/**
+ * Budget: la convalida della colonna Tipo degli Acquisti deve coprire tutto l'elenco
+ * delle tipologie (colonna X da riga 3), "Servizi" compreso.
+ */
+function correggiConvalidaTipoAcquisti_(sheet, esito) {
+  var nome = sheet.getName();
+  var s = strutturaFoglio_(sheet);
+  var acq = 0;
+  for (var r = 1; r <= s.n; r++) {
+    if (s.etichetta(r) === "Acquisti" && s.colonnaM(r) === "Tipo") { acq = r; break; }
+  }
+  if (!acq || s.fine(acq) <= acq) { esito.righe.push(nome + ": righe Acquisti non trovate"); return; }
+
+  var range = sheet.getRange(acq + 1, 13, s.fine(acq) - acq, 1);
+  var regole = range.getDataValidations();
+  var cambiate = 0, daA1 = "", aA1 = "";
+  for (var i = 0; i < regole.length; i++) {
+    var dv = regole[i][0];
+    if (!dv || dv.getCriteriaType() !== SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE) continue;
+    var elenco = dv.getCriteriaValues()[0];
+    // Righe consecutive non vuote dell'elenco, a partire dalla prima
+    var valori = elenco.getSheet().getRange(elenco.getRow(), elenco.getColumn(), 20, 1).getValues();
+    var lunghezza = 0;
+    while (lunghezza < valori.length && String(valori[lunghezza][0]).trim() !== "") lunghezza++;
+    if (lunghezza <= elenco.getNumRows()) continue;
+    var completo = elenco.getSheet().getRange(elenco.getRow(), elenco.getColumn(), lunghezza, 1);
+    regole[i][0] = dv.copy().requireValueInRange(completo, dv.getCriteriaValues()[1]).build();
+    daA1 = elenco.getSheet().getName() + "!" + elenco.getA1Notation();
+    aA1 = completo.getA1Notation();
+    cambiate++;
+  }
+  if (!cambiate) return;
+  range.setDataValidations(regole);
+  esito.corrette++;
+  esito.righe.push(nome + "!" + range.getA1Notation() + ": convalida Tipo " + daA1 + " → " + aA1 +
+                   " (" + cambiate + " celle)");
 }
