@@ -60,7 +60,10 @@ function onOpen() {
         .addSubMenu(ui.createMenu('↩️ Ripristina')
           .addItem('🧮 Ripristina formule', 'ripristinaFormuleTutteLeOfferte')
           .addItem('🏷️ Ripristina label', 'ripristinaLabelTutteLeOfferte')
-          .addItem('↩️ Ripristina formule e label', 'ripristinaFormuleELabelTutteLeOfferte'));
+          .addItem('↩️ Ripristina formule e label', 'ripristinaFormuleELabelTutteLeOfferte'))
+        .addSubMenu(ui.createMenu('🩹 Correzioni')
+          .addItem('Trasferta festivo/notturno - questo file', 'correggiTrasfertaFestivoNotturno')
+          .addItem('Trasferta festivo/notturno - tutti i BOM v08', 'correggiTrasfertaFestivoNotturnoTuttiIFiles'));
     }
 
     // Aggiungi il menu all'interfaccia utente
@@ -501,3 +504,7 @@ function eseguiImportComputo(analisi) { return BOM8.eseguiImportComputo(analisi)
 
 // Correzione una-tantum formula O/P/Q 439 (era =SUM con duplicazione righe 446/464/469)
 function correggiFormuleRiga439TuttiIFiles() { return BOM8.correggiFormuleRiga439TuttiIFiles(); }
+
+// Correzione una-tantum U377/U393: trasferta "Lavoro festivo e notturno" Europa/Mondo puntava alla zona precedente
+function correggiTrasfertaFestivoNotturno() { return BOM8.correggiTrasfertaFestivoNotturno(); }
+function correggiTrasfertaFestivoNotturnoTuttiIFiles() { return BOM8.correggiTrasfertaFestivoNotturnoTuttiIFiles(); }
