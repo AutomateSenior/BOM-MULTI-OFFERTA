@@ -3,6 +3,7 @@
  *
  * Logica rigenerazione Budget dalle offerte Off_XXX:
  * - O, P, Q (righe 78-527): formula SUM di tutte le Off_XXX
+ * - Z (ore) e AB (giorni) (righe 78-527): formula SUM di tutte le Off_XXX
  * - L (celle blu): concatenazione deduplicata delle Off_XXX
  * - M (se Q ≠ 0): tutte le Off_XXX con Q ≠ 0 devono avere stesso M → scritto in Budget; altrimenti errore bloccante
  * - N fino a riga 519: come M (stesso controllo, errore bloccante)
@@ -48,6 +49,7 @@ function rigeneraBudgetDaOfferte() {
     var colO  = letterToColumn("O");
     var colP  = letterToColumn("P");
     var colQ  = letterToColumn("Q");
+    var colZ  = letterToColumn("Z");
     var colAB = letterToColumn("AB");
     var numCols = colQ - colL + 1; // 6
 
@@ -81,6 +83,7 @@ function rigeneraBudgetDaOfferte() {
     var formulaO = [];          // array di array per setFormulas
     var formulaP = [];
     var formulaQ_arr = [];
+    var formulaZ  = [];
     var formulaAB = [];
 
     for (var r = 0; r < numRighe; r++) {
@@ -97,6 +100,13 @@ function rigeneraBudgetDaOfferte() {
       formulaO.push(["=" + rifO.join("+")]);
       formulaP.push(["=" + rifP.join("+")]);
       formulaQ_arr.push(["=" + rifQ.join("+")]);
+
+      // ── Z (ore): formula SUM; SUM e non "+" per ignorare eventuali testi ──
+      var rifZ = [];
+      for (var i = 0; i < offerteAbilitate.length; i++) {
+        rifZ.push(offerteAbilitate[i] + "!Z" + riga);
+      }
+      formulaZ.push(["=SUM(" + rifZ.join(",") + ")"]);
 
       // ── AB: formula SUM ───────────────────────────────────────────────────
       var rifAB = [];
@@ -206,10 +216,11 @@ function rigeneraBudgetDaOfferte() {
     }
 
     // ── 6. Scrivi O, P, Q, AB in batch ──────────────────────────────────────
-    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura formule O, P, Q, AB...");
+    CONFIG.LOG.info("rigeneraBudgetDaOfferte", "Scrittura formule O, P, Q, Z, AB...");
     budget.getRange(RANGE_INIZIO, colO,  numRighe, 1).setFormulas(formulaO);
     budget.getRange(RANGE_INIZIO, colP,  numRighe, 1).setFormulas(formulaP);
     budget.getRange(RANGE_INIZIO, colQ,  numRighe, 1).setFormulas(formulaQ_arr);
+    budget.getRange(RANGE_INIZIO, colZ,  numRighe, 1).setFormulas(formulaZ);
     budget.getRange(RANGE_INIZIO, colAB, numRighe, 1).setFormulas(formulaAB);
 
     // ── 6b. S64: somma da tutte le offerte abilitate ──────────────────────────
