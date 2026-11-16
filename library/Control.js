@@ -1049,3 +1049,152 @@ function correggiConvalidaTipoAcquisti_(sheet, esito) {
   esito.righe.push(nome + "!" + range.getA1Notation() + ": convalida Tipo " + daA1 + " → " + aA1 +
                    " (" + cambiate + " celle)");
 }
+
+// ============================================================================
+// Correzione 16/11/2026: totale giorni (colonna AB) nella riga TOTALI dei fogli
+// Off_XX e Master. Nel template v08 AB69 era =SUM(AB70; AB153; AB170; ...):
+// puntava alla riga 153 invece della 154 (Progettazione) e saltava 118 e 520,
+// mentre O/P/Q69 sommano le righe giuste. Le righe corrette si ricavano dalla
+// formula di O nella stessa riga, così vale anche se in un BOM sono spostate.
+// La formula si scrive con "+" (niente ; o , che dipendono dalle impostazioni).
+// ============================================================================
+
+var CORREZIONE_TOTALI_GIORNI = {
+  PROP_FATTI: "correzioneTotaliGiorni_fileFatti",
+  REPORT: "report_correzione_totali_giorni_16_11_2026.txt",
+  TEMPO_MAX_MS: 5 * 60 * 1000
+};
+
+/**
+ * Corregge AB della riga TOTALI in un foglio Off_XX o Master.
+ */
+function correggiTotaleGiorni_(sheet, esito) {
+  var nome = sheet.getName();
+  var s = strutturaFoglio_(sheet);
+  var riga = s.trova("TOTALI", 1, 1, s.n);
+  if (!riga) { esito.righe.push(nome + ": riga TOTALI non trovata, nessuna modifica"); return; }
+
+  var fO  = sheet.getRange(riga, 15).getFormula();   // O
+  var fAB = sheet.getRange(riga, 28).getFormula();   // AB
+  var righeO = (fO.match(/\$?O\$?(\d+)/gi) || []).map(function(x) { return Number(x.replace(/\D/g, "")); });
+  if (!/^=SUM\(/i.test(fO) || righeO.length === 0) {
+    esito.righe.push(nome + "!O" + riga + ": formula non standard '" + fO + "', nessuna modifica");
+    return;
+  }
+  var righeAB = (fAB.match(/\$?AB\$?(\d+)/gi) || []).map(function(x) { return Number(x.replace(/\D/g, "")); });
+  var uguali = righeAB.length === righeO.length &&
+    righeO.every(function(r) { return righeAB.indexOf(r) > -1; });
+  if (uguali) return;
+
+  // Tocca solo formule che sono somme di celle AB (eventuali modifiche manuali restano)
+  if (fAB && !/^=(SUM\()?\s*\$?AB\$?\d+(\s*[;,+]\s*\$?AB\$?\d+)*\s*\)?$/i.test(fAB)) {
+    esito.righe.push(nome + "!AB" + riga + ": formula non standard '" + fAB + "', non modificata");
+    return;
+  }
+  var attesa = "=" + righeO.map(function(r) { return "AB" + r; }).join("+");
+  sheet.getRange(riga, 28).setFormula(attesa);
+  esito.corrette++;
+  esito.righe.push(nome + "!AB" + riga + ": " + (fAB || "(vuota)") + " → " + attesa);
+}
+
+/**
+ * true se il foglio Budget ha il layout v08 ("BBS Level" in H1).
+ */
+function eLayoutV8_(ss) {
+  var budget = ss.getSheetByName(CONFIG.SHEETS.BUDGET);
+  if (!budget) return false;
+  return String(budget.getRange("H1").getValue() || "").trim().toLowerCase() === "bbs level";
+}
+
+/**
+ * Corregge il totale giorni nel file attivo.
+ */
+function correggiTotaliGiorni() {
+  var ui = SpreadsheetApp.getUi();
+  var esito = correggiTotaliGiorniInFile_(SpreadsheetApp.getActiveSpreadsheet());
+  var righe = esito.righe.length ? esito.righe : ["Nessuna correzione necessaria."];
+  ui.alert("Correzione totali giorni", righe.join("\n") +
+           "\n\nRilancia «Rigenera Budget» per aggiornare il Budget.", ui.ButtonSet.OK);
+}
+
+function correggiTotaliGiorniInFile_(ss) {
+  var esito = { corrette: 0, conGiorni: false, righe: [] };
+  var fogli = ss.getSheets();
+  for (var i = 0; i < fogli.length; i++) {
+    var nome = fogli[i].getName();
+    if (/^Off_/.test(nome) || nome === CONFIG.SHEETS.MASTER) {
+      correggiTotaleGiorni_(fogli[i], esito);
+    }
+  }
+  return esito;
+}
+
+/**
+ * Corregge il totale giorni in tutti i BOM con layout v08, riconosciuti dalla
+ * struttura del Budget e non dal nome (le ultime cifre di "#Rev 01.07" sono la
+ * revisione dell'offerta, non del template). Riprende da dove si era fermato
+ * se il tempo finisce.
+ */
+function correggiTotaliGiorniTuttiIFiles() {
+  var ui = SpreadsheetApp.getUi();
+  var inizio = Date.now();
+  var props = PropertiesService.getScriptProperties();
+  var fatti = JSON.parse(props.getProperty(CORREZIONE_TOTALI_GIORNI.PROP_FATTI) || "{}");
+
+  var files = DriveApp.searchFiles("title contains '" + CONFIG.SEARCH.BOM_PATTERN + "' and " +
+                                   "title contains '" + CONFIG.SEARCH.REV_PATTERN + "' and trashed = false");
+  var daFare = [];
+  while (files.hasNext()) {
+    var f = files.next();
+    if (f.getMimeType() !== MimeType.GOOGLE_SHEETS) continue;
+    if (/(^|_)SOM_/.test(f.getName())) continue;
+    if (!fatti[f.getId()]) daFare.push(f);
+  }
+
+  var report = [], totale = 0, elaborati = 0, nonV8 = 0;
+  for (var i = 0; i < daFare.length; i++) {
+    if (Date.now() - inizio > CORREZIONE_TOTALI_GIORNI.TEMPO_MAX_MS) break;
+    var file = daFare[i];
+    try {
+      var ss = SpreadsheetApp.open(file);
+      if (!eLayoutV8_(ss)) {
+        nonV8++;
+      } else {
+        var esito = correggiTotaliGiorniInFile_(ss);
+        totale += esito.corrette;
+        if (esito.righe.length) {
+          report.push(file.getName() + ": " + esito.corrette + " correzioni");
+          esito.righe.forEach(function(r) { report.push("   " + r); });
+        }
+      }
+      fatti[file.getId()] = true;
+    } catch (err) {
+      report.push(file.getName() + ": ERRORE - " + err.message);
+    }
+    elaborati++;
+  }
+
+  var rimasti = daFare.length - elaborati;
+  if (rimasti > 0) {
+    props.setProperty(CORREZIONE_TOTALI_GIORNI.PROP_FATTI, JSON.stringify(fatti));
+  } else {
+    props.deleteProperty(CORREZIONE_TOTALI_GIORNI.PROP_FATTI);
+  }
+
+  var intestazione = [
+    "CORREZIONE TOTALI GIORNI (AB riga TOTALI) - " + new Date().toLocaleString(),
+    "File elaborati in questa esecuzione: " + elaborati + " (non v08 saltati: " + nonV8 + ", rimasti: " + rimasti + ")",
+    "Totale celle corrette: " + totale,
+    "=================================================="
+  ];
+  var nomeReport = CORREZIONE_TOTALI_GIORNI.REPORT.replace(".txt", "_" +
+    Utilities.formatDate(new Date(), "Europe/Rome", "yyyyMMdd_HHmmss") + ".txt");
+  salvaSuDrive(nomeReport, intestazione.concat(report).join("\n"));
+
+  var msg = "Elaborati " + elaborati + " file (" + nonV8 + " non v08 saltati), celle corrette: " + totale + ".\n";
+  msg += rimasti > 0
+    ? "\nTempo esaurito: restano " + rimasti + " file. Rilancia la funzione per continuare."
+    : "\nCompletato.";
+  msg += "\nNei BOM corretti va rilanciato «Rigenera Budget».\nReport su Drive: " + nomeReport;
+  ui.alert("Correzione totali giorni", msg, ui.ButtonSet.OK);
+}

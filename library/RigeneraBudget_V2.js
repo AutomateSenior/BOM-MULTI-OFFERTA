@@ -230,7 +230,7 @@ function rigeneraBudgetDaOfferte() {
     var formuleABOfferta = ss.getSheetByName(offerteAbilitate[0])
       .getRange(RIEPILOGO_INIZIO, colAB, RANGE_FINE - RIEPILOGO_INIZIO + 1, 1)
       .getFormulas();
-    var soloSommaAB = /^=SUM\(\s*AB\d+(\s*[;,]\s*AB\d+)*\s*\)$/i;
+    var soloSommaAB = /^=(SUM\()?\s*AB\d+(\s*[;,+]\s*AB\d+)*\s*\)?$/i; // SUM(AB..;AB..) o AB..+AB..
     var riepiloghiZ = [];   // righe < RANGE_INIZIO, scritte a parte
     for (var k = 0; k < formuleABOfferta.length; k++) {
       var fAB = String(formuleABOfferta[k][0] || "").trim();

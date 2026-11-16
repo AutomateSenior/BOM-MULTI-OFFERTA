@@ -63,7 +63,10 @@ function onOpen() {
           .addItem('↩️ Ripristina formule e label', 'ripristinaFormuleELabelTutteLeOfferte'))
         .addSubMenu(ui.createMenu('🩹 Correzioni')
           .addItem('Correzioni 19/10/2026 - questo file', 'correggiBOM')
-          .addItem('Correzioni 19/10/2026 - tutti i BOM v08', 'correggiBOMTuttiIFiles'));
+          .addItem('Correzioni 19/10/2026 - tutti i BOM v08', 'correggiBOMTuttiIFiles')
+          .addSeparator()
+          .addItem('Totali giorni 16/11/2026 - questo file', 'correggiTotaliGiorni')
+          .addItem('Totali giorni 16/11/2026 - tutti i BOM v08', 'correggiTotaliGiorniTuttiIFiles'));
     }
 
     // Aggiungi il menu all'interfaccia utente
@@ -509,3 +512,7 @@ function correggiFormuleRiga439TuttiIFiles() { return BOM8.correggiFormuleRiga43
 // e "Servizi" mancante nella convalida Tipo degli Acquisti del Budget
 function correggiBOM() { return BOM8.correggiBOM(); }
 function correggiBOMTuttiIFiles() { return BOM8.correggiBOMTuttiIFiles(); }
+
+// Correzione 16/11/2026: totale giorni (AB) nella riga TOTALI dei fogli Off_XX e Master
+function correggiTotaliGiorni() { return BOM8.correggiTotaliGiorni(); }
+function correggiTotaliGiorniTuttiIFiles() { return BOM8.correggiTotaliGiorniTuttiIFiles(); }
