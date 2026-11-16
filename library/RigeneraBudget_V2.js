@@ -222,7 +222,32 @@ function rigeneraBudgetDaOfferte() {
     budget.getRange(RANGE_INIZIO, colO,  numRighe, 1).setFormulas(formulaO);
     budget.getRange(RANGE_INIZIO, colP,  numRighe, 1).setFormulas(formulaP);
     budget.getRange(RANGE_INIZIO, colQ,  numRighe, 1).setFormulas(formulaQ_arr);
+    // Z nelle righe di riepilogo: le offerte hanno il totale solo in AB
+    // (es. AB70 = SUM(AB71; ...; AB82)), non in Z. Si copia nel Budget la stessa
+    // somma della prima offerta abilitata, con Z al posto di AB, scritta come
+    // Z71+Z72+... (senza ; o , che dipendono dalle impostazioni del foglio).
+    var RIEPILOGO_INIZIO = 64;
+    var formuleABOfferta = ss.getSheetByName(offerteAbilitate[0])
+      .getRange(RIEPILOGO_INIZIO, colAB, RANGE_FINE - RIEPILOGO_INIZIO + 1, 1)
+      .getFormulas();
+    var soloSommaAB = /^=SUM\(\s*AB\d+(\s*[;,]\s*AB\d+)*\s*\)$/i;
+    var riepiloghiZ = [];   // righe < RANGE_INIZIO, scritte a parte
+    for (var k = 0; k < formuleABOfferta.length; k++) {
+      var fAB = String(formuleABOfferta[k][0] || "").trim();
+      if (!soloSommaAB.test(fAB)) continue;
+      var righeFiglie = fAB.match(/AB\d+/g).map(function(ref) { return "Z" + ref.slice(2); });
+      var fZ = "=" + righeFiglie.join("+");
+      var rigaR = RIEPILOGO_INIZIO + k;
+      if (rigaR >= RANGE_INIZIO) {
+        formulaZ[rigaR - RANGE_INIZIO] = [fZ];
+      } else {
+        riepiloghiZ.push({ riga: rigaR, formula: fZ });
+      }
+    }
     budget.getRange(RANGE_INIZIO, colZ,  numRighe, 1).setFormulas(formulaZ);
+    for (var k = 0; k < riepiloghiZ.length; k++) {
+      budget.getRange(riepiloghiZ[k].riga, colZ).setFormula(riepiloghiZ[k].formula);
+    }
     budget.getRange(RANGE_INIZIO, colAB, numRighe, 1).setFormulas(formulaAB);
 
     // ── 6b. S64: somma da tutte le offerte abilitate ──────────────────────────
