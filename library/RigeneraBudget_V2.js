@@ -101,12 +101,14 @@ function rigeneraBudgetDaOfferte() {
       formulaP.push(["=" + rifP.join("+")]);
       formulaQ_arr.push(["=" + rifQ.join("+")]);
 
-      // ── Z (ore): formula SUM; SUM e non "+" per ignorare eventuali testi ──
+      // ── Z (ore): somma con N() per ignorare eventuali testi. Niente SUM(a,b):
+      //    con le impostazioni italiane la virgola è il separatore decimale e la
+      //    formula dà #ERROR! (provato il 16/11/2026 sul BOM 25228.2.ONM).
       var rifZ = [];
       for (var i = 0; i < offerteAbilitate.length; i++) {
-        rifZ.push(offerteAbilitate[i] + "!Z" + riga);
+        rifZ.push("N(" + offerteAbilitate[i] + "!Z" + riga + ")");
       }
-      formulaZ.push(["=SUM(" + rifZ.join(",") + ")"]);
+      formulaZ.push(["=" + rifZ.join("+")]);
 
       // ── AB: formula SUM ───────────────────────────────────────────────────
       var rifAB = [];
