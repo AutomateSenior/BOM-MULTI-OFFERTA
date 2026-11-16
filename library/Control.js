@@ -1136,7 +1136,9 @@ function correggiTotaliGiorniInFile_(ss) {
  * se il tempo finisce.
  */
 function correggiTotaliGiorniTuttiIFiles() {
-  var ui = SpreadsheetApp.getUi();
+  // Da menu c'è l'interfaccia; dal timer di ripresa no
+  var ui = null;
+  try { ui = SpreadsheetApp.getUi(); } catch (e) { ui = null; }
   var inizio = Date.now();
   var props = PropertiesService.getScriptProperties();
   var fatti = JSON.parse(props.getProperty(CORREZIONE_TOTALI_GIORNI.PROP_FATTI) || "{}");
@@ -1177,8 +1179,10 @@ function correggiTotaliGiorniTuttiIFiles() {
   var rimasti = daFare.length - elaborati;
   if (rimasti > 0) {
     props.setProperty(CORREZIONE_TOTALI_GIORNI.PROP_FATTI, JSON.stringify(fatti));
+    programmaRipresaTotaliGiorni_(true);   // riparte da sola tra un minuto
   } else {
     props.deleteProperty(CORREZIONE_TOTALI_GIORNI.PROP_FATTI);
+    programmaRipresaTotaliGiorni_(false);  // finito: toglie il timer
   }
 
   var intestazione = [
@@ -1193,8 +1197,26 @@ function correggiTotaliGiorniTuttiIFiles() {
 
   var msg = "Elaborati " + elaborati + " file (" + nonV8 + " non v08 saltati), celle corrette: " + totale + ".\n";
   msg += rimasti > 0
-    ? "\nTempo esaurito: restano " + rimasti + " file. Rilancia la funzione per continuare."
+    ? "\nTempo esaurito: restano " + rimasti + " file. La correzione riparte da sola tra un minuto, " +
+      "fino alla fine (un report su Drive per ogni giro)."
     : "\nCompletato.";
   msg += "\nNei BOM corretti va rilanciato «Rigenera Budget».\nReport su Drive: " + nomeReport;
-  ui.alert("Correzione totali giorni", msg, ui.ButtonSet.OK);
+  Logger.log(msg);
+  if (ui) ui.alert("Correzione totali giorni", msg, ui.ButtonSet.OK);
+}
+
+/**
+ * Timer di ripresa: un solo trigger "dopo 1 minuto" sulla funzione del menu.
+ * Il trigger è creato nel progetto da cui si lancia la correzione (il template),
+ * dove esiste la funzione correggiTotaliGiorniTuttiIFiles.
+ */
+function programmaRipresaTotaliGiorni_(attiva) {
+  var handler = "correggiTotaliGiorniTuttiIFiles";
+  var triggers = ScriptApp.getProjectTriggers();
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === handler) ScriptApp.deleteTrigger(triggers[i]);
+  }
+  if (attiva) {
+    ScriptApp.newTrigger(handler).timeBased().after(60 * 1000).create();
+  }
 }
