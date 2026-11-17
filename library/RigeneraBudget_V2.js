@@ -232,6 +232,7 @@ function rigeneraBudgetDaOfferte() {
       .getFormulas();
     var soloSommaAB = /^=(SUM\()?\s*AB\d+(\s*[;,+]\s*AB\d+)*\s*\)?$/i; // SUM(AB..;AB..) o AB..+AB..
     var riepiloghiZ = [];   // righe < RANGE_INIZIO, scritte a parte
+    var riepiloghiAB = [];  // idem per i giorni (es. TOTALI 69 e Project Management 70)
     for (var k = 0; k < formuleABOfferta.length; k++) {
       var fAB = String(formuleABOfferta[k][0] || "").trim();
       if (!soloSommaAB.test(fAB)) continue;
@@ -242,11 +243,23 @@ function rigeneraBudgetDaOfferte() {
         formulaZ[rigaR - RANGE_INIZIO] = [fZ];
       } else {
         riepiloghiZ.push({ riga: rigaR, formula: fZ });
+        // Sopra riga 78 il Budget non riceve AB dalle offerte: stesso totale per i giorni
+        riepiloghiAB.push({ riga: rigaR, formula: "=" + righeFiglie.map(function(z) { return "AB" + z.slice(1); }).join("+") });
       }
     }
     budget.getRange(RANGE_INIZIO, colZ,  numRighe, 1).setFormulas(formulaZ);
     for (var k = 0; k < riepiloghiZ.length; k++) {
       budget.getRange(riepiloghiZ[k].riga, colZ).setFormula(riepiloghiZ[k].formula);
+    }
+    // Giorni nei riepiloghi sopra riga 78: si scrive solo se la cella del Budget è
+    // vuota o è già una somma di celle AB (eventuali valori manuali restano)
+    for (var k = 0; k < riepiloghiAB.length; k++) {
+      var cellaAB = budget.getRange(riepiloghiAB[k].riga, colAB);
+      var fAttuale = String(cellaAB.getFormula() || "").trim();
+      var vuota = !fAttuale && (cellaAB.getValue() === "" || cellaAB.getValue() === null);
+      if (vuota || soloSommaAB.test(fAttuale)) {
+        cellaAB.setFormula(riepiloghiAB[k].formula);
+      }
     }
     budget.getRange(RANGE_INIZIO, colAB, numRighe, 1).setFormulas(formulaAB);
 
