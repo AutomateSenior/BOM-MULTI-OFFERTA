@@ -6,6 +6,8 @@
  * - Z (ore) e AB (giorni) (righe 78-527): formula SUM di tutte le Off_XXX
  * - L (celle blu): concatenazione deduplicata delle Off_XXX
  * - M (se Q ≠ 0): tutte le Off_XXX con Q ≠ 0 devono avere stesso M → scritto in Budget; altrimenti errore bloccante
+ * - M nelle righe acquisti (442-473): con Q ≠ 0 il TIPO deve essere compilato, altrimenti errore bloccante
+ *   (Acquisti legge da qui gli acquisti e scarta le righe senza TIPO)
  * - N fino a riga 519: come M (stesso controllo, errore bloccante)
  * - N da riga 521: se Q ≠ 0 → somma N di tutte le Off_XXX
  */
@@ -13,6 +15,8 @@
 function rigeneraBudgetDaOfferte() {
   var RANGE_INIZIO = 78;
   var RANGE_FINE   = 527;
+  var ACQUISTI_INIZIO = 442;   // righe lette da Acquisti (Load_BOM_Materiali_V8_)
+  var ACQUISTI_FINE   = 473;
   var numRighe     = RANGE_FINE - RANGE_INIZIO + 1;
 
   var tempoInizio = new Date().getTime();
@@ -144,6 +148,23 @@ function rigeneraBudgetDaOfferte() {
       }
 
       if (!rigaAttiva) continue; // Nessuna offerta ha Q ≠ 0: salta M e N
+
+      // ── M nelle righe acquisti: il TIPO è obbligatorio ─────────────────────
+      // Senza TIPO l'acquisto non arriva in Acquisti (BOM 25228, 18/11/2026).
+      if (riga >= ACQUISTI_INIZIO && riga <= ACQUISTI_FINE) {
+        var senzaTipo = [];
+        for (var i = 0; i < indiciConQNonZero.length; i++) {
+          var idOff = offerteAbilitate[indiciConQNonZero[i]];
+          var tipoOff = String(offerteData[idOff][r][iM] || "").trim();
+          if (!tipoOff) senzaTipo.push(idOff);
+        }
+        if (senzaTipo.length > 0) {
+          var descr = String(offerteData[offerteAbilitate[indiciConQNonZero[0]]][r][iL] || "").trim();
+          erroriBloccanti.push("Riga " + riga + (descr ? " (" + descr + ")" : "") +
+            " col M — TIPO acquisto mancante in: " + senzaTipo.join(", "));
+          continue;
+        }
+      }
 
       // ── M: controllo consistenza tra offerte con Q ≠ 0 ────────────────────
       var mValori = [];
